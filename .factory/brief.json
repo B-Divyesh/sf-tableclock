@@ -1,0 +1,9 @@
+{
+  "slug": "tableclock",
+  "title": "Tableclock: a multi-device turn timer / N-player chess clock for board-game tables",
+  "user": "Board-game groups and parents with analysis-paralysis players who want a 3–8 player clock that survives OS updates and works on whatever phones are at the table.",
+  "smallest_useful_product": "Add 2–8 players, choose count-up, bank, Fischer increment, or fixed per-turn, then tap to end turns. The clock uses large colour fields, audio/vibration cues, flexible order, optional room sync, and URL presets.",
+  "artifact_class": "pwa-offline",
+  "monetization": "free",
+  "constraints": "Local-first; iOS wake-lock limitations; server-authoritative timestamps when a sync service is configured; no accounts or game trademarks."
+}
