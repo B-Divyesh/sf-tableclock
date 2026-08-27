@@ -1,4 +1,4 @@
-const VERSION = 'tableclock-v1.0.1';
+const VERSION = 'tableclock-v1.0.2';
 const SHELL = [
   '/',
   '/offline.html',
@@ -42,11 +42,6 @@ self.addEventListener('fetch', (event) => {
       caches.open(VERSION).then((cache) => cache.put('/', copy));
       return response;
     }).catch(async () => (await caches.match('/')) || (await caches.match('/offline.html'))));
-    return;
-  }
-
-  if (url.pathname.startsWith('/sync')) {
-    event.respondWith(fetch(event.request));
     return;
   }
 

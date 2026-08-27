@@ -7,5 +7,5 @@ Tableclock supports count-up, time-bank, Fischer-increment, and fixed-per-turn m
 ## Pages
 
 - [Tableclock](https://tableclock.sociobot.in/): Set up and run a clock.
-- [Privacy](https://tableclock.sociobot.in/privacy/): Local storage and optional room-sync privacy.
+- [Privacy](https://tableclock.sociobot.in/privacy/): Local storage and privacy details.
 - [Terms](https://tableclock.sociobot.in/terms/): Terms and timing limitations.

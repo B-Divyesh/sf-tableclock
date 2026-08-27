@@ -2,7 +2,7 @@
 
 Tableclock is a free, installable turn timer for two to eight people around a board-game table. It handles count-up, shared-style time banks, Fischer increments, and fresh per-turn limits. It is intentionally not a scorekeeper or play log.
 
-The app is designed for families and groups who need turns to keep moving without depending on an app-store timer that may disappear. It works on one phone, persists an unfinished game locally, and keeps working offline after the first load. A room relay can be configured to mirror the clock across phones; sync is never required for the local clock.
+The app is designed for families and groups who need turns to keep moving without depending on an app-store timer that may disappear. It works on one shared phone, persists an unfinished game locally, and keeps working offline after the first load. Cross-phone sync is not included in this release.
 
 ## Run locally
 
@@ -31,14 +31,9 @@ npm run build
 
 The unit suite covers elapsed-time accounting, pause/resume, increments, reverse order, skipped/out players, and time formatting.
 
-## Optional room relay
+## Player order keyboard shortcut
 
-Set `VITE_SYNC_URL` at build time to a WebSocket endpoint. The browser protocol is intentionally small:
-
-- Client → relay: `{type:"join", room, clientId, state}` or `{type:"state", room, clientId, state}`.
-- Relay → clients in that room: `{type:"state", state}`.
-
-The relay should keep room state in memory only, use its own receipt timestamp for ordering, cap messages and rooms, and expire inactive rooms. When no relay is configured, Tableclock tries the same-origin `/sync` path, reports a clear error if unavailable, and continues locally. Tabs on the same device also mirror through `BroadcastChannel`.
+In setup, focus a player-name field and press Arrow Up or Arrow Down to move that player one place in the turn order. Focus stays on that player field after the move, while Tab continues through the normal controls. The adjacent move buttons provide the same action for pointer and keyboard users.
 
 ## Privacy and ownership
 
@@ -48,6 +43,6 @@ The dithered setup illustration was generated specifically for this project; its
 
 ## Deploy
 
-Publish `dist/` to any static host. Configure SPA fallbacks to `index.html` for app navigation; standalone `/privacy/` and `/terms/` documents are included as direct-load fallbacks. HTTPS is required for service workers, install prompts, wake lock, and production WebSockets.
+Publish `dist/` to Azure Static Web Apps. The generated build root includes `staticwebapp.config.json`: fingerprinted `/assets/*` use one-year immutable caching, while HTML and `sw.js` revalidate. Standalone `/privacy/` and `/terms/` documents are included as direct-load fallbacks. HTTPS is required for service workers, install prompts, and wake lock.
 
 Licensed under the MIT License.

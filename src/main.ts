@@ -1,12 +1,11 @@
 import './styles.css';
 import { activeValues, createGame, DEFAULT_SETTINGS, endTurn, formatTime, initialSetup, makePlayer, pause, PLAYER_COLORS, startOrResume, toggleOut } from './engine';
 import { decodePreset, encodePreset } from './presets';
+import { movePlayer } from './setup';
 import { readLocal, writeLocal } from './storage';
-import { RoomSync } from './sync';
 import type { ClockMode, GameState, SavedSetup } from './types';
 
 const app = document.querySelector<HTMLDivElement>('#app')!;
-const sync = new RoomSync();
 let setup: SavedSetup = initialSetup();
 let game: GameState | null = null;
 let frame = 0;
@@ -33,11 +32,11 @@ function legalPage(kind: 'privacy' | 'terms'): void {
       <h1>${privacy ? 'Your table stays yours.' : 'Fair play, plain terms.'}</h1>
       ${privacy ? `
         <p>Tableclock has no accounts, advertising, analytics, or tracking. Your player names, preferences, and unfinished clock are stored only in your browser using IndexedDB.</p>
-        <h2>Room sync</h2><p>If you choose room sync on a deployment where it is enabled, the current clock state and player names pass ephemerally through the room relay. Rooms are not archived. Use nicknames if you prefer.</p>
+        <h2>Cross-phone sync</h2><p>Cross-phone sync is not included in this release. Player names and clock state stay on this device unless you choose to export a setup file.</p>
         <h2>Your controls</h2><p>You can export a setup as JSON, clear a game from the menu, or remove all Tableclock data by clearing this site's storage in your browser.</p>` : `
         <p>Tableclock is provided free of charge for personal and group use. The software is supplied “as is,” without a promise that a device will keep a background timer awake.</p>
         <h2>Timing responsibly</h2><p>Browser and operating-system limits can delay sound, vibration, or display updates. Do not use Tableclock for safety-critical, legal, sporting, or financial timing.</p>
-        <h2>Shared rooms</h2><p>Everyone in a room can control its clock. Share room codes only with people at your table.</p>`}
+        <h2>One shared device</h2><p>Tableclock is designed for one shared device at the table. Cross-phone sync is not included in this release.</p>`}
       <p><a class="text-link" href="/" data-nav>Back to the clock</a></p>
     </main>
     <footer class="site-footer">© 2026 Tableclock · <a href="/privacy" data-nav>Privacy</a> · <a href="/terms" data-nav>Terms</a></footer>`;
@@ -64,17 +63,19 @@ function renderSetup(message = ''): void {
 
       <section class="setup-sheet" aria-labelledby="setup-title">
         <div class="section-heading"><div><p class="step-mark">01</p><h2 id="setup-title">Who’s playing?</h2></div><span>${setup.players.length} / 8</span></div>
+        <p class="setup-help" id="player-order-help">Select a player name, then use Arrow Up or Arrow Down to move that player in the turn order. Tab still moves through every control.</p>
         <div class="player-list" data-player-list>${setup.players.map((player, index) => `
           <div class="player-row" data-player-id="${player.id}">
             <span class="player-token" style="--player:${player.color}" aria-hidden="true">${index + 1}</span>
             <label class="sr-only" for="player-${player.id}">Player ${index + 1} name</label>
-            <input id="player-${player.id}" maxlength="24" value="${escapeHtml(player.name)}" data-player-name="${player.id}" autocomplete="off">
+            <input id="player-${player.id}" maxlength="24" value="${escapeHtml(player.name)}" data-player-name="${player.id}" aria-describedby="player-order-help" aria-keyshortcuts="ArrowUp ArrowDown" autocomplete="off">
             <div class="row-actions">
               <button class="icon-button" data-move="up" data-id="${player.id}" aria-label="Move ${escapeHtml(player.name)} earlier" ${index === 0 ? 'disabled' : ''}>↑</button>
               <button class="icon-button" data-move="down" data-id="${player.id}" aria-label="Move ${escapeHtml(player.name)} later" ${index === setup.players.length - 1 ? 'disabled' : ''}>↓</button>
               <button class="icon-button remove" data-remove="${player.id}" aria-label="Remove ${escapeHtml(player.name)}" ${setup.players.length <= 2 ? 'disabled' : ''}>×</button>
             </div>
           </div>`).join('')}</div>
+        <p class="sr-only" role="status" aria-live="polite" data-reorder-status></p>
         <button class="paper-button add-player" data-action="add-player" ${setup.players.length >= 8 ? 'disabled' : ''}><span aria-hidden="true">＋</span> Add player</button>
 
         <div class="rule"></div>
@@ -93,7 +94,7 @@ function renderSetup(message = ''): void {
           <button class="text-button" data-action="share-preset">Share this setup</button>
         </div>
       </section>
-      <aside class="offline-note"><span aria-hidden="true">✦</span><p><strong>Made to outlast app stores.</strong><br>Install it once and the clock keeps working without a connection.</p></aside>
+      <aside class="offline-note"><span aria-hidden="true">✦</span><p><strong>Made to outlast app stores.</strong><br>Install it once and the clock keeps working without a connection. Cross-phone sync is not included in this release.</p></aside>
       <div class="data-tools"><button class="text-button" data-action="import">Import a setup</button><input class="sr-only" type="file" accept="application/json" data-import-file aria-label="Choose a Tableclock setup file"></div>
     </main>
     ${footer()}
@@ -119,7 +120,7 @@ function renderGame(): void {
     <header class="game-header">
       <button class="wordmark game-wordmark" data-action="game-menu" aria-haspopup="dialog"><span aria-hidden="true">↻</span> Tableclock <span class="menu-cue">Menu</span></button>
       <p class="turn-meta">Turn ${game.turnNumber} · ${modeLabel(game.settings.mode)}</p>
-      <button class="room-pill" data-action="sync-room"><span class="status-dot ${sync.status}"></span>${sync.room || 'Link phones'}</button>
+      <p class="sync-unavailable" aria-label="Cross-phone sync is not included in this release"><span aria-hidden="true">↔</span> Sync not included</p>
     </header>
     <main id="main" class="game-board" style="--active-color:${active.color}">
       <h1 class="sr-only">Game clock</h1>
@@ -153,7 +154,7 @@ function gameDialogs(): string {
     <h3>Player status</h3><div class="out-grid">${currentGame.players.map((p, i) => `<button class="paper-button ${p.out ? 'selected' : ''}" data-out="${i}" ${currentGame.players.filter((x) => !x.out).length <= 2 && !p.out ? 'disabled' : ''}>${escapeHtml(p.name)} · ${p.out ? 'Bring back' : 'Mark out'}</button>`).join('')}</div>
     <div class="dialog-actions stacked"><button class="paper-button" data-action="export">Export setup</button><button class="danger-button" data-action="leave-game">End game and return to setup</button></div>
   </div></dialog>
-  <dialog id="sync-dialog"><div class="dialog-sheet"><div class="dialog-head"><div><p class="eyebrow">Optional room</p><h2>Put the clock on every phone</h2></div><button class="close-button" data-close aria-label="Close">×</button></div><p>Enter the same four-letter code on each device. Anyone in the room can end the current turn.</p><label>Room code<input id="room-code" maxlength="4" pattern="[A-Za-z]{4}" autocomplete="off" autocapitalize="characters" value="${sync.room}"></label><p class="sync-message" role="status" data-sync-status>${sync.status === 'error' ? 'Room sync is unavailable here; the local clock is unaffected.' : 'Clock data is ephemeral and is not archived.'}</p><div class="dialog-actions"><button class="primary-button" data-action="join-room">${sync.room ? 'Reconnect' : 'Join room'}</button>${sync.room ? '<button class="paper-button" data-action="leave-room">Leave room</button>' : ''}</div></div></dialog>`;
+  `;
 }
 
 function showToast(message: string): void {
@@ -166,10 +167,9 @@ function showToast(message: string): void {
 }
 
 function persistSetup(): void { void writeLocal('setup', setup); }
-function persistGame(broadcast = true): void {
+function persistGame(): void {
   if (!game) return;
   void writeLocal('game', game);
-  if (broadcast) sync.broadcast(game);
 }
 
 function startTicker(): void {
@@ -245,6 +245,16 @@ function updateSetupFromForm(target: HTMLInputElement): void {
   persistSetup();
 }
 
+function reorderSetupPlayer(id: string, direction: 'up' | 'down'): boolean {
+  const player = setup.players.find((item) => item.id === id);
+  if (!player || !movePlayer(setup.players, id, direction)) return false;
+  persistSetup();
+  renderSetup();
+  document.querySelector<HTMLInputElement>(`[data-player-name="${id}"]`)?.focus();
+  document.querySelector<HTMLElement>('[data-reorder-status]')!.textContent = `${player.name || 'Player'} moved ${direction === 'up' ? 'earlier' : 'later'} in the turn order.`;
+  return true;
+}
+
 function validateSetup(): string | null {
   if (setup.players.some((p) => !p.name.trim())) return 'Give every player a name before starting.';
   if (setup.settings.mode !== 'countup' && (setup.settings.durationSec < 5 || setup.settings.durationSec > 86_400)) return 'Choose a starting time between 5 and 86,400 seconds.';
@@ -275,15 +285,6 @@ function handleAction(action: string, button: HTMLElement): void {
     persistGame(); renderGame(); showToast(`Turn order is now ${game.settings.direction === 1 ? 'clockwise' : 'reversed'}.`);
   } else if (action === 'game-menu') {
     (document.querySelector('#game-menu') as HTMLDialogElement)?.showModal();
-  } else if (action === 'sync-room') {
-    (document.querySelector('#sync-dialog') as HTMLDialogElement)?.showModal();
-  } else if (action === 'join-room') {
-    const input = document.querySelector<HTMLInputElement>('#room-code');
-    const room = input?.value.trim().toUpperCase() ?? '';
-    if (!/^[A-Z]{4}$/.test(room) || !game) { input?.setCustomValidity('Use exactly four letters.'); input?.reportValidity(); return; }
-    input?.setCustomValidity(''); sync.connect(room, game);
-  } else if (action === 'leave-room') {
-    sync.disconnect(); (document.querySelector('#sync-dialog') as HTMLDialogElement)?.close(); renderGame();
   } else if (action === 'share-preset') {
     const dialog = document.querySelector<HTMLDialogElement>('#share-dialog')!;
     const url = new URL(location.href); url.pathname = '/'; url.search = ''; url.searchParams.set('preset', encodePreset(setup));
@@ -298,7 +299,7 @@ function handleAction(action: string, button: HTMLElement): void {
     document.querySelector<HTMLInputElement>('[data-import-file]')?.click();
   } else if (action === 'leave-game') {
     if (confirm('End this clock? The current times will be cleared, but your setup will remain.')) {
-      releaseWakeLock(); sync.disconnect(); game = null; void writeLocal('game', null); (document.querySelector('#game-menu') as HTMLDialogElement)?.close(); renderSetup('Clock cleared. Your players and rules are ready for another round.');
+      releaseWakeLock(); game = null; void writeLocal('game', null); (document.querySelector('#game-menu') as HTMLDialogElement)?.close(); renderSetup('Clock cleared. Your players and rules are ready for another round.');
     }
   } else if (action === 'install') {
     const prompt = deferredInstall as Event & { prompt?: () => Promise<void> }; void prompt.prompt?.();
@@ -338,10 +339,8 @@ app.addEventListener('click', (event) => {
   if (remove && setup.players.length > 2) { setup.players = setup.players.filter((p) => p.id !== remove.dataset.remove); persistSetup(); renderSetup(); return; }
   const move = target.closest<HTMLElement>('[data-move]');
   if (move) {
-    const index = setup.players.findIndex((p) => p.id === move.dataset.id);
-    const other = move.dataset.move === 'up' ? index - 1 : index + 1;
-    if (index >= 0 && other >= 0 && other < setup.players.length) [setup.players[index], setup.players[other]] = [setup.players[other]!, setup.players[index]!];
-    persistSetup(); renderSetup(); document.querySelector<HTMLInputElement>(`[data-player-name="${move.dataset.id}"]`)?.focus(); return;
+    if (move.dataset.id && (move.dataset.move === 'up' || move.dataset.move === 'down')) reorderSetupPlayer(move.dataset.id, move.dataset.move);
+    return;
   }
   const out = target.closest<HTMLElement>('[data-out]');
   if (out && game) { game = toggleOut(game, Number(out.dataset.out)); persistGame(); (document.querySelector('#game-menu') as HTMLDialogElement)?.close(); renderGame(); return; }
@@ -349,6 +348,12 @@ app.addEventListener('click', (event) => {
 });
 
 document.addEventListener('keydown', (event) => {
+  const target = event.target;
+  if (target instanceof HTMLInputElement && target.dataset.playerName && (event.key === 'ArrowUp' || event.key === 'ArrowDown')) {
+    const direction = event.key === 'ArrowUp' ? 'up' : 'down';
+    if (reorderSetupPlayer(target.dataset.playerName, direction)) event.preventDefault();
+    return;
+  }
   if (!game || document.querySelector('dialog[open]') || event.target instanceof HTMLInputElement) return;
   if (event.target instanceof HTMLElement && event.target.closest('button, a, select, textarea')) return;
   if (event.code === 'Space' || event.code === 'Enter') { event.preventDefault(); handleAction('end-turn', document.body); }
@@ -367,15 +372,6 @@ function updateNetwork(online: boolean): void {
   if (!online) showToast('You’re offline. The clock and saved setup still work.');
 }
 function updateInstallButton(): void { const button = document.querySelector<HTMLButtonElement>('[data-action="install"]'); if (button) button.hidden = !deferredInstall; }
-
-sync.onStatus = (status, message) => {
-  const statusNode = document.querySelector<HTMLElement>('[data-sync-status]');
-  if (statusNode) statusNode.textContent = status === 'connected' ? `Connected to ${sync.room}. Keep this page open.` : message ?? 'Connecting…';
-  if (status === 'connected') { window.setTimeout(() => { (document.querySelector('#sync-dialog') as HTMLDialogElement)?.close(); renderGame(); showToast(`Room ${sync.room} connected.`); }, 500); }
-};
-sync.onState = (incoming) => {
-  if (!game || incoming.updatedAt > game.updatedAt) { game = incoming; persistGame(false); renderGame(); showToast('Clock updated by someone in the room.'); }
-};
 
 function route(): void {
   if (location.pathname === '/privacy') legalPage('privacy');

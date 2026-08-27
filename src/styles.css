@@ -121,7 +121,7 @@ dialog::backdrop { background: rgb(32 29 25 / 72%); backdrop-filter: blur(2px); 
 .toggle-list input { width: 25px; height: 25px; accent-color: var(--tomato); }
 .dialog-sheet h3 { font: 800 20px/1.2 var(--display); }
 .out-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
-.sync-message { min-height: 46px; margin: 14px 0 0; padding: 10px; background: var(--paper-deep); color: var(--ink) !important; border-left: 5px solid var(--warning); }
+.setup-help { max-width: 620px; margin: -4px 0 16px; color: var(--ink-soft); font-size: 14px; }
 .toast { position: fixed; z-index: 80; left: 50%; bottom: max(90px, calc(env(safe-area-inset-bottom) + 90px)); width: min(520px, calc(100% - 32px)); padding: 14px 18px; color: var(--cream); background: var(--ink); border: 2px solid var(--cream); box-shadow: 4px 4px 0 var(--tomato); font-weight: 750; text-align: center; transform: translateX(-50%); }
 
 /* The game view is a separate, high-contrast instrument surface. */
@@ -129,11 +129,7 @@ dialog::backdrop { background: rgb(32 29 25 / 72%); backdrop-filter: blur(2px); 
 .game-wordmark { padding: 0; color: var(--cream); background: none; border: 0; cursor: pointer; }
 .menu-cue { color: var(--paper-deep); font: 650 12px/1 var(--utility); }
 .turn-meta { margin: 0; color: var(--paper-deep); font-size: 14px; font-weight: 750; }
-.room-pill { min-height: 44px; padding: 8px 12px; color: var(--cream); background: transparent; border: 1px solid rgb(255 249 234 / 45%); border-radius: 30px; cursor: pointer; font-size: 14px; font-weight: 800; }
-.status-dot { display: inline-block; width: 8px; height: 8px; margin-right: 7px; background: #aaa; border-radius: 50%; }
-.status-dot.connected { background: #6ed69a; }
-.status-dot.connecting { background: #e8c45d; }
-.status-dot.error { background: #ec6b5f; }
+.sync-unavailable { margin: 0; padding: 8px 12px; color: var(--cream); border: 1px solid rgb(255 249 234 / 45%); border-radius: 30px; font-size: 14px; font-weight: 800; }
 .game-board { height: calc(100dvh - 150px - env(safe-area-inset-bottom)); min-height: 420px; display: grid; grid-template-rows: minmax(250px, 1fr) auto; overflow: hidden; background: var(--ink); }
 .active-clock { position: relative; width: 100%; min-height: 250px; display: flex; flex-direction: column; align-items: center; justify-content: center; padding: 28px 20px; overflow: hidden; color: var(--cream); background-color: var(--active-color); background-image: radial-gradient(rgb(255 249 234 / 12%) 1px, transparent 1px); background-size: 6px 6px; border: 0; cursor: pointer; text-align: center; transition: filter 180ms ease, transform 180ms ease; }
 .active-clock::before, .active-clock::after { content: ""; position: absolute; width: 54px; height: 54px; opacity: .65; }
@@ -180,7 +176,7 @@ dialog::backdrop { background: rgb(32 29 25 / 72%); backdrop-filter: blur(2px); 
   .site-footer { flex-direction: column; }
   .turn-meta { display: none; }
   .game-wordmark .menu-cue { display: none; }
-  .room-pill { padding-inline: 10px; }
+  .sync-unavailable { padding-inline: 10px; }
   .active-clock::before, .active-clock::after { width: 34px; height: 34px; }
   .clock-time { font-size: clamp(58px, 21vw, 92px); }
   .out-grid { grid-template-columns: 1fr; }
@@ -200,7 +196,7 @@ dialog::backdrop { background: rgb(32 29 25 / 72%); backdrop-filter: blur(2px); 
   .game-header { padding-inline: 10px; }
   .wordmark { font-size: 17px; }
   .wordmark > span:first-child { width: 28px; height: 28px; }
-  .room-pill { font-size: 12px; }
+  .sync-unavailable { font-size: 12px; }
   .control-dock { padding-inline: 8px; }
 }
 
