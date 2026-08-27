@@ -1,45 +1,48 @@
-# Tableclock repair handoff — PASS
+# Tableclock verification handoff — PASS
 
 Date: 2026-08-27
-Work order: `tableclock-repair-3`
-Base reviewed: `42e5a0a78f0ca4a325b219c12502fa73760dea81`
-Deployment: https://tableclock.sociobot.in (Azure Static Web Apps, Standard)
+Work order: `tableclock-verify-4`
+Verified candidate: `84df163ce15bf49aa9526715927c0f620bb89d74`
+Verified deployment: https://tableclock.sociobot.in
 
-## What changed
+## Result
 
-- Made the mobile running `.player-strip` a named, keyboard-focusable region. Left/Right Arrow scrolls it without taking over Space/Enter or `P` timer controls. The 390px Axe `scrollable-region-focusable` finding is gone.
-- Added a single validation boundary for JSON imports, URL presets, setup starts, and restored IndexedDB state. Modes must be one of the four supported values; duration is a finite whole number from 5–86,400 seconds; increment and nudge are finite whole numbers from 0–3,600 seconds; names are non-empty strings of at most 24 characters. Corrupt state is discarded rather than rendered, and time formatting has a finite-value fallback.
-- Added production regression coverage for the exact 1440×900 desktop keyboard flow and 390×844 running/out-player strip, including Axe serious/critical assertions. The PWA service-worker offline reload is also covered.
-- Added Static Web Apps CSP, `frame-ancestors 'none'`, `X-Frame-Options: DENY`, restrictive Permissions-Policy, and the `.webmanifest` `application/manifest+json` MIME mapping.
+**PASS.** Fresh clean-checkout verification found no P0–P3 defects. The live
+site is byte-identical to the candidate production build and the core
+local-first timer is usable on desktop, 390px mobile, keyboard-only, and
+offline after service-worker control.
 
-## Verification
-
-Clean verification was run after `npm ci`:
-
-```sh
-npm test
-npm run build
-npm run test:e2e
-```
-
-- Unit suite: **28 tests passed**.
-- Production build: passed; `dist/` created. Initial JS is **27.82 kB raw / 9.68 kB gzip** and CSS is **15.32 kB raw / 4.32 kB gzip**.
-- Browser suite: **3 passed**. At desktop it verifies Space ends a turn and the player grid does not scroll. At 390px it verifies the region has horizontal overflow, focuses it, scrolls with ArrowRight, marks a player out, keeps the Space timer flow, and returns zero serious/critical Axe violations. It also reloads the service-worker-controlled app offline.
-- The same browser suite passed against the deployed URL. `/opt/fleet/lib/verify-url.sh` passed against production: HTTP 200, title/lang/h1/main/alt checks, and zero console/page errors (753 ms load in that smoke run).
-- Live response checks confirm CSP, Permissions-Policy, `X-Frame-Options: DENY`, and `Content-Type: application/manifest+json` for `/manifest.webmanifest`.
-
-## Run and deploy
+## How verified
 
 ```sh
 npm ci
-npm run build
-npm run preview
 npm test
+npm run build
+npx playwright install chromium
 npm run test:e2e
 ```
 
-Install the browser once for the browser suite with `npx playwright install chromium` before running `npm run test:e2e`. Deploy `dist/` as an Azure Static Web Apps Standard static artifact; `public/staticwebapp.config.json` is copied into `dist/` by Vite.
+- 28 unit tests and all 3 production-browser tests passed.
+- Build passed with TypeScript checking and produced `dist/`; initial JS is
+  27,815 bytes raw / 9,680 gzip and CSS is 15,318 bytes raw / 4,320 gzip.
+- Fresh Lighthouse mobile production result: Performance 100, Accessibility
+  100, Best Practices 100, SEO 100; LCP 989 ms, TBT 0 ms, CLS 0.0114.
+- Manual browser QA covered 2–8 players, malformed/invalid input recovery,
+  count-up/bank/Fischer/fixed timing, timeout, reverse, out, reload
+  persistence, share presets, visible keyboard focus, 390px strip keyboard
+  scrolling, reduced motion, zero serious/critical Axe findings, zero console
+  or page errors, and live offline reload.
+- Live SHA-256 values match local `dist/` for app HTML, JS, CSS, service
+  worker, manifest, and offline page; `verification-4.md` contains hashes and
+  complete policy/privacy evidence.
+
+## Run/deploy
+
+Run `npm ci && npm run build && npm test && npm run test:e2e`; serve with
+`npm run preview`. Publish `dist/` to Azure Static Web Apps. Install Chromium
+once with `npx playwright install chromium` when the container lacks it.
 
 ## Known gaps / next steps
 
-No release blockers found. Cross-phone sync remains intentionally out of scope; the app is local-first and its privacy/terms pages state that clearly.
+Cross-phone sync is intentionally out of scope for this release and is
+plainly disclosed in the product and legal pages. No release blocker found.
