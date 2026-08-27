@@ -1,33 +1,20 @@
-# Tableclock repair handoff
+# Tableclock verification handoff — FAIL
 
 Date: 2026-08-27
-Work order: `tableclock-repair-2`
-Base: `339c76c2afe5f1066642cfb794f83391850e70ca`
+Work order: `tableclock-verify-3`
+Verified commit: `f96e05951751df3e082bdc660936fc2b1a172230`
+Verified URL: https://tableclock.sociobot.in
 
 ## Status
 
-The three requested verifier-2 product blockers are repaired and the local
-production build is verified. This is intentionally a focused repair: the
-local-only scope, timer modes/semantics, setup arrow-key reordering, PWA
-offline/update flow, and static cache configuration remain intact.
+**FAIL — do not release this candidate unchanged.** The deployed site is an
+exact artifact match for the verified commit, but two P1 defects prevent a
+pass: a serious Axe keyboard-accessibility failure in the 390px running state
+and acceptance of semantically invalid import data that yields `NaN:NaN`.
 
-## Changes
+No product code was modified in this verification work order.
 
-- The running clock no longer applies opacity to an out player. The explicit
-  `Out` label is `#FFD4CF` on the `#151310` running strip (13.75:1 contrast),
-  so the normal 11px marker exceeds WCAG AA rather than inheriting a dimmed
-  effective colour.
-- Vibration is now restricted to a pointer-activated turn action. Keyboard
-  start/end-turn, timer nudges, and expiry states do not invoke
-  `navigator.vibrate`, preventing Chromium's blocked-haptics console error.
-- The decorative setup print is omitted from the mobile DOM (as already
-  intended by the phone layout) and decoded asynchronously on larger screens.
-  This removes the off-screen image from the mobile critical path.
-- Added exact state regressions: the haptics tests cover pointer, keyboard,
-  nudge, expiry, and disabled states; the running-state test asserts the
-  opaque out-player treatment and WCAG-AA contrast token pair.
-
-## Run and verify
+## What passed
 
 ```sh
 npm ci
@@ -36,31 +23,24 @@ npm run build
 npm run preview -- --port 4173
 ```
 
-Verification completed against the clean production preview:
+- Clean install passed with zero reported vulnerabilities; 14 unit tests in 5
+  files passed; the production TypeScript/Vite build passed.
+- JS (25,228 bytes raw / 8,980 gzip) and CSS (15,318 raw / 4,320 gzip) are
+  within budget. Local mobile Lighthouse was 100 Performance, 100
+  Accessibility, 100 Best Practices, and 100 SEO (LCP 1,359 ms, CLS 0).
+- Desktop and 390px normal timer flows, all four timer modes, keyboard start/
+  pause/end turn, focus treatment, persistence, reduced motion, 2–8-player
+  boundary, offline reload, service-worker update toast, privacy/request
+  checks, and exact live artifact parity passed.
 
-- `npm test`: 14 tests in 5 files passed.
-- `npm run build`: passed; `dist/` produced. Initial JS is 25.23 KB raw / 8.98
-  KB gzip and CSS is 15.32 KB raw / 4.32 KB gzip.
-- Playwright/axe smoke on desktop (1440×900) and mobile (390×844): setup
-  Arrow Up reordering retained focus/order; keyboard `P` start and Space
-  end-turn generated zero console errors; a player was marked out and Axe had
-  zero serious/critical issues; both layouts had no horizontal overflow; a
-  service-worker-controlled offline reload rendered the app successfully.
-- Mobile Lighthouse production-preview reruns (simulated throttling):
-  Performance **100/100**, Accessibility **100/100** both times. Run 1:
-  FCP/LCP 908 ms, TBT 0 ms, 15,065 transferred bytes. Run 2: FCP/LCP 905 ms,
-  TBT 0 ms, 15,065 transferred bytes.
+## Required next work
 
-## Live baseline / deployment note
+1. Fix the serious Axe `scrollable-region-focusable` violation on the mobile
+   `.player-strip` while running, then retest at 390px.
+2. Reject invalid imported settings and add coverage for invalid mode and
+   non-numeric/out-of-range duration/increment/nudge values.
+3. Add CSP/frame/Permissions-Policy deployment hardening and correct the
+   manifest content type.
 
-The existing live site was read-only checked before handoff. It still serves
-the prior candidate asset names (`index-XyuD-B3l.js`, `index-BthEpW2j.css`),
-so it cannot yet be byte-identical to this un-deployed repair. Its truthful
-local-only Privacy and Terms copy remains live, and the existing
-`Cache-Control`, HSTS, `Referrer-Policy`, and `X-Content-Type-Options`
-headers remain unchanged. Deployment should publish this commit, then rerun
-the same live Lighthouse/browser parity checks against the new hashed assets.
-
-The deployment-level CSP/frame/Permissions-Policy recommendation in
-`verification-2.md` remains factory infrastructure work and was not changed
-by this focused static-app repair.
+Full commands, test evidence, hashes, and severity details are in
+`.factory/verification-3.md`.
