@@ -1,0 +1,11 @@
+# Tableclock
+
+> Tableclock is a free, private, offline-first turn timer for two to eight board-game players.
+
+Tableclock supports count-up, time-bank, Fischer-increment, and fixed-per-turn modes. It stores setups and running clocks locally, provides JSON export/import, and can encode a setup in a shareable URL. It has no accounts, advertisements, or analytics.
+
+## Pages
+
+- [Tableclock](https://tableclock.sociobot.in/): Set up and run a clock.
+- [Privacy](https://tableclock.sociobot.in/privacy/): Local storage and optional room-sync privacy.
+- [Terms](https://tableclock.sociobot.in/terms/): Terms and timing limitations.
