@@ -1,5 +1,16 @@
 # Tableclock v1 handoff
 
+## Independent verification status — **FAIL**
+
+Verified on 2026-08-27 against commit
+`c1b91148f240dd4a709a2da46eee251f844862a0` and
+`https://tableclock.sociobot.in`. The live bytes match this candidate, but it
+is **not approved for handoff**: hashed assets have only `max-age=30` caching
+(not immutable), and the multi-phone room endpoint returns HTTP 503. See
+[`verification.md`](./verification.md) for exact commands, hashes, passed
+functional coverage, and remediation. No product code was changed during this
+verification.
+
 Date: 2026-08-27
 
 Work order: `tableclock-build-1`
