@@ -1,52 +1,66 @@
-# Tableclock verification handoff — FAIL
+# Tableclock repair handoff
 
 Date: 2026-08-27
-Work order: `tableclock-verify-2`
-Verified candidate: `6423f568831e08e7e547f723c10a1a35f2f0fdac`
-Verified deployment: https://tableclock.sociobot.in
+Work order: `tableclock-repair-2`
+Base: `339c76c2afe5f1066642cfb794f83391850e70ca`
 
 ## Status
 
-**FAIL.** This is a verification result; no product code was changed.
+The three requested verifier-2 product blockers are repaired and the local
+production build is verified. This is intentionally a focused repair: the
+local-only scope, timer modes/semantics, setup arrow-key reordering, PWA
+offline/update flow, and static cache configuration remain intact.
 
-The candidate and live deployment match exactly, production build/test/type
-checks pass, and local-first PWA behavior works. It cannot be handed off as a
-PASS because a normal running-clock state has an Axe serious contrast issue,
-keyboard start logs a haptics console error, and mobile Lighthouse Performance
-is 87 rather than the required >=90.
+## Changes
 
-## Reproduce
+- The running clock no longer applies opacity to an out player. The explicit
+  `Out` label is `#FFD4CF` on the `#151310` running strip (13.75:1 contrast),
+  so the normal 11px marker exceeds WCAG AA rather than inheriting a dimmed
+  effective colour.
+- Vibration is now restricted to a pointer-activated turn action. Keyboard
+  start/end-turn, timer nudges, and expiry states do not invoke
+  `navigator.vibrate`, preventing Chromium's blocked-haptics console error.
+- The decorative setup print is omitted from the mobile DOM (as already
+  intended by the phone layout) and decoded asynchronously on larger screens.
+  This removes the off-screen image from the mobile critical path.
+- Added exact state regressions: the haptics tests cover pointer, keyboard,
+  nudge, expiry, and disabled states; the running-state test asserts the
+  opaque out-player treatment and WCAG-AA contrast token pair.
+
+## Run and verify
 
 ```sh
 npm ci
 npm test
 npm run build
-npm run preview
+npm run preview -- --port 4173
 ```
 
-Then use Chromium to start a clock, open Options, mark a player out, and run
-Axe: `.out-label` fails 4.5:1 contrast. Start with Enter/Space and observe the
-blocked `navigator.vibrate` console error. Run mobile Lighthouse against the
-production preview for the 87 Performance result.
+Verification completed against the clean production preview:
 
-## What passed
+- `npm test`: 14 tests in 5 files passed.
+- `npm run build`: passed; `dist/` produced. Initial JS is 25.23 KB raw / 8.98
+  KB gzip and CSS is 15.32 KB raw / 4.32 KB gzip.
+- Playwright/axe smoke on desktop (1440×900) and mobile (390×844): setup
+  Arrow Up reordering retained focus/order; keyboard `P` start and Space
+  end-turn generated zero console errors; a player was marked out and Axe had
+  zero serious/critical issues; both layouts had no horizontal overflow; a
+  service-worker-controlled offline reload rendered the app successfully.
+- Mobile Lighthouse production-preview reruns (simulated throttling):
+  Performance **100/100**, Accessibility **100/100** both times. Run 1:
+  FCP/LCP 908 ms, TBT 0 ms, 15,065 transferred bytes. Run 2: FCP/LCP 905 ms,
+  TBT 0 ms, 15,065 transferred bytes.
 
-- 11 unit tests; exact production build including `dist/`.
-- 2–8 player setup, all four clock modes, validation/recovery, keyboard
-  reordering/turn control, reverse/out, persistence, privacy/terms, and no
-  external application requests.
-- 390px layout, visible focus, reduced motion, service-worker offline reload,
-  and a real service-worker update-toast cycle.
-- Live files match the candidate. Hashed assets use one-year immutable cache;
-  HTML and `sw.js` revalidate.
+## Live baseline / deployment note
 
-## Remaining work
+The existing live site was read-only checked before handoff. It still serves
+the prior candidate asset names (`index-XyuD-B3l.js`, `index-BthEpW2j.css`),
+so it cannot yet be byte-identical to this un-deployed repair. Its truthful
+local-only Privacy and Terms copy remains live, and the existing
+`Cache-Control`, HSTS, `Referrer-Policy`, and `X-Content-Type-Options`
+headers remain unchanged. Deployment should publish this commit, then rerun
+the same live Lighthouse/browser parity checks against the new hashed assets.
 
-1. Fix the serious `.out-label` contrast failure.
-2. Guard haptic calls so keyboard activation has no console error.
-3. Raise mobile Lighthouse Performance to >=90.
-4. Harden deployment headers (CSP, frame-embedding, Permissions-Policy) and
-   preferably use a manifest-specific MIME type.
-
-Full commands, measurements, hashes, tested behaviors, security/header
-inspection, and defect evidence are in `.factory/verification-2.md`.
+The deployment-level CSP/frame/Permissions-Policy recommendation in
+`verification-2.md` remains factory infrastructure work and was not changed
+by this focused static-app repair.

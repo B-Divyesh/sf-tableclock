@@ -1,6 +1,8 @@
 import './styles.css';
 import { activeValues, createGame, DEFAULT_SETTINGS, endTurn, formatTime, initialSetup, makePlayer, pause, PLAYER_COLORS, startOrResume, toggleOut } from './engine';
+import { vibrationPattern, type CueKind } from './haptics';
 import { decodePreset, encodePreset } from './presets';
+import { OUT_LABEL_COLOR, RUNNING_STRIP_COLOR } from './running-colors';
 import { movePlayer } from './setup';
 import { readLocal, writeLocal } from './storage';
 import type { ClockMode, GameState, SavedSetup } from './types';
@@ -46,6 +48,9 @@ function renderSetup(message = ''): void {
   stopTicker();
   document.title = 'Tableclock — take turns, not forever';
   const timed = setup.settings.mode !== 'countup';
+  // The print is deliberately a desktop/tablet detail. Omitting it from the
+  // mobile DOM avoids an off-screen image decode on the timer's critical path.
+  const showTablePrint = !window.matchMedia('(max-width: 720px)').matches;
   app.innerHTML = `
     <header class="site-header">
       <a class="wordmark" href="/" aria-label="Tableclock home"><span aria-hidden="true">↻</span> Tableclock</a>
@@ -58,7 +63,7 @@ function renderSetup(message = ''): void {
           <h1 id="main-title">Take turns.<br> <em>Not forever.</em></h1>
           <p class="lede">Two to eight players, one clear clock. No account, no scorekeeping, and no signal required.</p>
         </div>
-        <figure class="table-print"><picture><source srcset="/assets/table-gathering.avif" type="image/avif"><img src="/assets/table-gathering.webp" width="720" height="480" alt="Five abstract phones arranged around a printed board-game table" fetchpriority="high"></picture><figcaption>One phone or a whole table.</figcaption></figure>
+        ${showTablePrint ? '<figure class="table-print"><picture><source srcset="/assets/table-gathering.avif" type="image/avif"><img src="/assets/table-gathering.webp" width="720" height="480" alt="Five abstract phones arranged around a printed board-game table" fetchpriority="high" decoding="async"></picture><figcaption>One phone or a whole table.</figcaption></figure>' : ''}
       </section>
 
       <section class="setup-sheet" aria-labelledby="setup-title">
@@ -122,7 +127,7 @@ function renderGame(): void {
       <p class="turn-meta">Turn ${game.turnNumber} · ${modeLabel(game.settings.mode)}</p>
       <p class="sync-unavailable" aria-label="Cross-phone sync is not included in this release"><span aria-hidden="true">↔</span> Sync not included</p>
     </header>
-    <main id="main" class="game-board" style="--active-color:${active.color}">
+    <main id="main" class="game-board" style="--active-color:${active.color};--running-strip:${RUNNING_STRIP_COLOR};--out-label:${OUT_LABEL_COLOR}">
       <h1 class="sr-only">Game clock</h1>
       <button class="active-clock" data-action="end-turn" ${game.running ? '' : 'aria-disabled="true"'} aria-label="${game.running ? `End ${escapeHtml(active.name)}’s turn` : `Start ${escapeHtml(active.name)}’s turn`}">
         <span class="turn-label">${game.running ? 'Now playing' : 'Ready for'}</span>
@@ -208,9 +213,10 @@ function startTicker(): void {
 
 function stopTicker(): void { cancelAnimationFrame(frame); }
 
-function cue(kind: 'turn' | 'nudge' | 'expired'): void {
+function cue(kind: CueKind, pointerActivated = false): void {
   if (!game) return;
-  if (game.settings.vibration && 'vibrate' in navigator) navigator.vibrate(kind === 'expired' ? [100, 80, 180] : kind === 'nudge' ? [35, 50, 35] : 35);
+  const pattern = vibrationPattern(kind, game.settings.vibration, pointerActivated);
+  if (pattern !== null && 'vibrate' in navigator) navigator.vibrate(pattern);
   if (!game.settings.sound) return;
   try {
     audio ??= new AudioContext();
@@ -261,7 +267,7 @@ function validateSetup(): string | null {
   return null;
 }
 
-function handleAction(action: string, button: HTMLElement): void {
+function handleAction(action: string, button: HTMLElement, pointerActivated = false): void {
   if (action === 'add-player') {
     if (setup.players.length < 8) setup.players.push(makePlayer(`Player ${setup.players.length + 1}`, setup.players.length));
     persistSetup(); renderSetup();
@@ -274,11 +280,11 @@ function handleAction(action: string, button: HTMLElement): void {
   } else if (action === 'toggle-run') {
     if (!game) return;
     game = game.running ? pause(game) : startOrResume(game);
-    if (game.running) { void requestWakeLock(); cue('turn'); } else releaseWakeLock();
+    if (game.running) { void requestWakeLock(); cue('turn', pointerActivated); } else releaseWakeLock();
     persistGame(); renderGame();
   } else if (action === 'end-turn') {
     if (!game?.running) return;
-    game = endTurn(game); nudgedTurn = 0; cue('turn'); persistGame(); renderGame();
+    game = endTurn(game); nudgedTurn = 0; cue('turn', pointerActivated); persistGame(); renderGame();
   } else if (action === 'reverse') {
     if (!game) return;
     game = { ...game, settings: { ...game.settings, direction: game.settings.direction === 1 ? -1 : 1 }, updatedAt: Date.now() };
@@ -334,7 +340,7 @@ app.addEventListener('click', (event) => {
   const nav = target.closest<HTMLAnchorElement>('[data-nav]');
   if (nav) { event.preventDefault(); history.pushState({}, '', nav.href); route(); return; }
   const actionElement = target.closest<HTMLElement>('[data-action]');
-  if (actionElement) { event.preventDefault(); handleAction(actionElement.dataset.action!, actionElement); return; }
+  if (actionElement) { event.preventDefault(); handleAction(actionElement.dataset.action!, actionElement, event.detail > 0); return; }
   const remove = target.closest<HTMLElement>('[data-remove]');
   if (remove && setup.players.length > 2) { setup.players = setup.players.filter((p) => p.id !== remove.dataset.remove); persistSetup(); renderSetup(); return; }
   const move = target.closest<HTMLElement>('[data-move]');
