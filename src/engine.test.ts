@@ -20,6 +20,16 @@ describe('clock engine', () => {
     expect(game.players[0]?.remainingMs).toBe(63_000);
   });
 
+  it('refreshes a fixed per-turn allowance for the next player', () => {
+    const setup = initialSetup();
+    setup.settings.mode = 'fixed';
+    setup.settings.durationSec = 30;
+    let game = startOrResume(createGame(setup, 0), 0);
+    game = endTurn(game, 7_000);
+    expect(game.players[0]?.remainingMs).toBe(23_000);
+    expect(game.players[1]?.remainingMs).toBe(30_000);
+  });
+
   it('skips out players and supports reverse order', () => {
     const game = createGame(initialSetup());
     game.players[1]!.out = true;
