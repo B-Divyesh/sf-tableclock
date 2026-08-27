@@ -16,4 +16,10 @@ describe('shareable presets', () => {
   it('rejects malformed data', () => {
     expect(decodePreset('not-a-preset')).toBeNull();
   });
+
+  it('rejects non-finite and out-of-range timing values', () => {
+    const malformed = (value: object) => btoa(JSON.stringify(value)).replaceAll('+', '-').replaceAll('/', '_').replaceAll('=', '');
+    expect(decodePreset(malformed({ v: 1, n: ['A', 'B'], m: 'bank', d: 300, i: -1, a: 0 }))).toBeNull();
+    expect(decodePreset(malformed({ v: 1, n: ['A', 'B'], m: 'bank', d: 300, i: 0, a: 3_601 }))).toBeNull();
+  });
 });

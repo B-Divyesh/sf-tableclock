@@ -1,6 +1,9 @@
 {
   "globalHeaders": {
-    "Cache-Control": "public, max-age=0, must-revalidate"
+    "Cache-Control": "public, max-age=0, must-revalidate",
+    "Content-Security-Policy": "default-src 'self'; base-uri 'self'; connect-src 'self'; font-src 'self'; form-action 'self'; frame-ancestors 'none'; img-src 'self' data:; manifest-src 'self'; object-src 'none'; script-src 'self'; style-src 'self' 'unsafe-inline'; worker-src 'self'",
+    "Permissions-Policy": "accelerometer=(), autoplay=(), camera=(), geolocation=(), microphone=(), payment=(), usb=()",
+    "X-Frame-Options": "DENY"
   },
   "routes": [
     {
@@ -16,6 +19,9 @@
       }
     }
   ],
+  "mimeTypes": {
+    ".webmanifest": "application/manifest+json"
+  },
   "navigationFallback": {
     "rewrite": "/index.html",
     "exclude": [

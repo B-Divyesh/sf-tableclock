@@ -1,46 +1,45 @@
-# Tableclock verification handoff — FAIL
+# Tableclock repair handoff — PASS
 
 Date: 2026-08-27
-Work order: `tableclock-verify-3`
-Verified commit: `f96e05951751df3e082bdc660936fc2b1a172230`
-Verified URL: https://tableclock.sociobot.in
+Work order: `tableclock-repair-3`
+Base reviewed: `42e5a0a78f0ca4a325b219c12502fa73760dea81`
+Deployment: https://tableclock.sociobot.in (Azure Static Web Apps, Standard)
 
-## Status
+## What changed
 
-**FAIL — do not release this candidate unchanged.** The deployed site is an
-exact artifact match for the verified commit, but two P1 defects prevent a
-pass: a serious Axe keyboard-accessibility failure in the 390px running state
-and acceptance of semantically invalid import data that yields `NaN:NaN`.
+- Made the mobile running `.player-strip` a named, keyboard-focusable region. Left/Right Arrow scrolls it without taking over Space/Enter or `P` timer controls. The 390px Axe `scrollable-region-focusable` finding is gone.
+- Added a single validation boundary for JSON imports, URL presets, setup starts, and restored IndexedDB state. Modes must be one of the four supported values; duration is a finite whole number from 5–86,400 seconds; increment and nudge are finite whole numbers from 0–3,600 seconds; names are non-empty strings of at most 24 characters. Corrupt state is discarded rather than rendered, and time formatting has a finite-value fallback.
+- Added production regression coverage for the exact 1440×900 desktop keyboard flow and 390×844 running/out-player strip, including Axe serious/critical assertions. The PWA service-worker offline reload is also covered.
+- Added Static Web Apps CSP, `frame-ancestors 'none'`, `X-Frame-Options: DENY`, restrictive Permissions-Policy, and the `.webmanifest` `application/manifest+json` MIME mapping.
 
-No product code was modified in this verification work order.
+## Verification
 
-## What passed
+Clean verification was run after `npm ci`:
+
+```sh
+npm test
+npm run build
+npm run test:e2e
+```
+
+- Unit suite: **28 tests passed**.
+- Production build: passed; `dist/` created. Initial JS is **27.82 kB raw / 9.68 kB gzip** and CSS is **15.32 kB raw / 4.32 kB gzip**.
+- Browser suite: **3 passed**. At desktop it verifies Space ends a turn and the player grid does not scroll. At 390px it verifies the region has horizontal overflow, focuses it, scrolls with ArrowRight, marks a player out, keeps the Space timer flow, and returns zero serious/critical Axe violations. It also reloads the service-worker-controlled app offline.
+- The same browser suite passed against the deployed URL. `/opt/fleet/lib/verify-url.sh` passed against production: HTTP 200, title/lang/h1/main/alt checks, and zero console/page errors (753 ms load in that smoke run).
+- Live response checks confirm CSP, Permissions-Policy, `X-Frame-Options: DENY`, and `Content-Type: application/manifest+json` for `/manifest.webmanifest`.
+
+## Run and deploy
 
 ```sh
 npm ci
-npm test
 npm run build
-npm run preview -- --port 4173
+npm run preview
+npm test
+npm run test:e2e
 ```
 
-- Clean install passed with zero reported vulnerabilities; 14 unit tests in 5
-  files passed; the production TypeScript/Vite build passed.
-- JS (25,228 bytes raw / 8,980 gzip) and CSS (15,318 raw / 4,320 gzip) are
-  within budget. Local mobile Lighthouse was 100 Performance, 100
-  Accessibility, 100 Best Practices, and 100 SEO (LCP 1,359 ms, CLS 0).
-- Desktop and 390px normal timer flows, all four timer modes, keyboard start/
-  pause/end turn, focus treatment, persistence, reduced motion, 2–8-player
-  boundary, offline reload, service-worker update toast, privacy/request
-  checks, and exact live artifact parity passed.
+Install the browser once for the browser suite with `npx playwright install chromium` before running `npm run test:e2e`. Deploy `dist/` as an Azure Static Web Apps Standard static artifact; `public/staticwebapp.config.json` is copied into `dist/` by Vite.
 
-## Required next work
+## Known gaps / next steps
 
-1. Fix the serious Axe `scrollable-region-focusable` violation on the mobile
-   `.player-strip` while running, then retest at 390px.
-2. Reject invalid imported settings and add coverage for invalid mode and
-   non-numeric/out-of-range duration/increment/nudge values.
-3. Add CSP/frame/Permissions-Policy deployment hardening and correct the
-   manifest content type.
-
-Full commands, test evidence, hashes, and severity details are in
-`.factory/verification-3.md`.
+No release blockers found. Cross-phone sync remains intentionally out of scope; the app is local-first and its privacy/terms pages state that clearly.

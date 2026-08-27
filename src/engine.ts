@@ -118,7 +118,7 @@ export function toggleOut(state: GameState, index: number, now = Date.now()): Ga
 }
 
 export function formatTime(ms: number, tenths = false): string {
-  const safe = Math.max(0, ms);
+  const safe = Number.isFinite(ms) ? Math.max(0, ms) : 0;
   const totalSeconds = Math.floor(safe / 1000);
   const hours = Math.floor(totalSeconds / 3600);
   const minutes = Math.floor((totalSeconds % 3600) / 60);

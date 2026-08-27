@@ -6,6 +6,7 @@ import { OUT_LABEL_COLOR, RUNNING_STRIP_COLOR } from './running-colors';
 import { movePlayer } from './setup';
 import { readLocal, writeLocal } from './storage';
 import type { ClockMode, GameState, SavedSetup } from './types';
+import { isValidGameState, parseImportedSetup, setupValidationError } from './validation';
 
 const app = document.querySelector<HTMLDivElement>('#app')!;
 let setup: SavedSetup = initialSetup();
@@ -135,7 +136,8 @@ function renderGame(): void {
         <span class="clock-time" data-clock>${formatTime(shown, true)}</span>
         <span class="tap-instruction">${game.running ? 'Tap anywhere here to end turn' : 'Press start below'}</span>
       </button>
-      <ol class="player-strip" aria-label="Players in turn order">${game.players.map((player, index) => {
+      <p class="sr-only" id="player-strip-help">Player order. Use Left and Right Arrow keys to review players that extend beyond the screen.</p>
+      <ol class="player-strip" tabindex="0" aria-label="Players in turn order" aria-describedby="player-strip-help">${game.players.map((player, index) => {
         const isActive = index === game!.activeIndex;
         const value = isActive ? shown : game!.settings.mode === 'countup' ? player.elapsedMs : player.remainingMs;
         return `<li class="mini-player ${isActive ? 'is-active' : ''} ${player.out ? 'is-out' : ''}" style="--player:${player.color}" ${isActive ? 'aria-current="true"' : ''}><span class="mini-order">${index + 1}</span><strong>${escapeHtml(player.name)}</strong><span class="mini-time" data-mini="${index}">${formatTime(value)}</span>${player.out ? '<span class="out-label">Out</span>' : ''}</li>`;
@@ -246,7 +248,8 @@ function updateSetupFromForm(target: HTMLInputElement): void {
     renderSetup();
   } else if (target.dataset.setting) {
     const key = target.dataset.setting as 'durationSec' | 'incrementSec' | 'nudgeSec';
-    setup.settings[key] = Math.max(0, Number(target.value) || 0);
+    const value = Number(target.value);
+    setup.settings[key] = Number.isFinite(value) ? Math.max(0, value) : 0;
   }
   persistSetup();
 }
@@ -262,9 +265,7 @@ function reorderSetupPlayer(id: string, direction: 'up' | 'down'): boolean {
 }
 
 function validateSetup(): string | null {
-  if (setup.players.some((p) => !p.name.trim())) return 'Give every player a name before starting.';
-  if (setup.settings.mode !== 'countup' && (setup.settings.durationSec < 5 || setup.settings.durationSec > 86_400)) return 'Choose a starting time between 5 and 86,400 seconds.';
-  return null;
+  return setupValidationError(setup);
 }
 
 function handleAction(action: string, button: HTMLElement, pointerActivated = false): void {
@@ -322,9 +323,9 @@ app.addEventListener('change', (event) => {
     void target.files[0].text().then((text) => {
       try {
         const parsed = JSON.parse(text) as { setup?: unknown } & Partial<SavedSetup>;
-        const incoming = (parsed.setup ?? parsed) as Partial<SavedSetup>;
-        if (!incoming || incoming.version !== 1 || !Array.isArray(incoming.players) || incoming.players.length < 2 || incoming.players.length > 8 || !incoming.settings) throw new Error('invalid');
-        setup = { version: 1, players: incoming.players.map((player, index) => ({ ...makePlayer(String(player.name || `Player ${index + 1}`), index), color: PLAYER_COLORS[index]! })), settings: { ...DEFAULT_SETTINGS, ...incoming.settings } };
+        const incoming = parseImportedSetup(parsed.setup ?? parsed);
+        if (!incoming) throw new Error('invalid');
+        setup = incoming;
         persistSetup(); renderSetup('Setup imported. Review it, then start when everyone is ready.');
       } catch { renderSetup('That file is not a valid Tableclock setup. Choose a JSON file exported by Tableclock.'); }
     });
@@ -355,6 +356,11 @@ app.addEventListener('click', (event) => {
 
 document.addEventListener('keydown', (event) => {
   const target = event.target;
+  if (target instanceof HTMLElement && target.matches('.player-strip') && (event.key === 'ArrowLeft' || event.key === 'ArrowRight')) {
+    target.scrollBy({ left: event.key === 'ArrowLeft' ? -120 : 120, behavior: 'auto' });
+    event.preventDefault();
+    return;
+  }
   if (target instanceof HTMLInputElement && target.dataset.playerName && (event.key === 'ArrowUp' || event.key === 'ArrowDown')) {
     const direction = event.key === 'ArrowUp' ? 'up' : 'down';
     if (reorderSetupPlayer(target.dataset.playerName, direction)) event.preventDefault();
@@ -389,7 +395,8 @@ function route(): void {
 async function boot(): Promise<void> {
   const savedSetup = await readLocal<SavedSetup>('setup');
   const savedGame = await readLocal<GameState>('game');
-  if (savedSetup?.version === 1 && savedSetup.players.length >= 2) setup = savedSetup;
+  const validSavedSetup = parseImportedSetup(savedSetup);
+  if (validSavedSetup) setup = validSavedSetup;
   const presetParam = new URLSearchParams(location.search).get('preset');
   if (presetParam) {
     const preset = decodePreset(presetParam);
@@ -400,7 +407,7 @@ async function boot(): Promise<void> {
   } else if (new URLSearchParams(location.search).has('new')) {
     await writeLocal('game', null);
     history.replaceState({}, '', '/');
-  } else if (savedGame?.started && savedGame.players.length >= 2) game = savedGame;
+  } else if (isValidGameState(savedGame)) game = savedGame;
   route();
   if ('serviceWorker' in navigator) {
     navigator.serviceWorker.register('/sw.js').then((registration) => {

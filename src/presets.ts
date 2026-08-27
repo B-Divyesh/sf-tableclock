@@ -1,4 +1,5 @@
 import type { SavedSetup } from './types';
+import { isClockMode } from './validation';
 
 interface PortablePreset {
   v: 1;
@@ -31,8 +32,11 @@ export function decodePreset(value: string): PortablePreset | null {
     const bytes = Uint8Array.from(binary, (character) => character.charCodeAt(0));
     const candidate = JSON.parse(new TextDecoder().decode(bytes)) as Partial<PortablePreset>;
     if (candidate.v !== 1 || !Array.isArray(candidate.n) || candidate.n.length < 2 || candidate.n.length > 8) return null;
-    if (!['countup', 'bank', 'fischer', 'fixed'].includes(candidate.m ?? '')) return null;
-    if (!Number.isFinite(candidate.d) || candidate.d! < 5 || candidate.d! > 86_400) return null;
+    if (!candidate.n.every((name) => typeof name === 'string' && name.trim().length > 0 && name.trim().length <= 24)) return null;
+    if (!isClockMode(candidate.m)) return null;
+    if (typeof candidate.d !== 'number' || !Number.isFinite(candidate.d) || !Number.isInteger(candidate.d) || candidate.d < 5 || candidate.d > 86_400) return null;
+    if (typeof candidate.i !== 'number' || !Number.isFinite(candidate.i) || !Number.isInteger(candidate.i) || candidate.i < 0 || candidate.i > 3_600) return null;
+    if (typeof candidate.a !== 'number' || !Number.isFinite(candidate.a) || !Number.isInteger(candidate.a) || candidate.a < 0 || candidate.a > 3_600) return null;
     return candidate as PortablePreset;
   } catch {
     return null;

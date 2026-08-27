@@ -27,9 +27,10 @@ The exact production build command is `npm run build`. Its static output is `dis
 ```sh
 npm test
 npm run build
+npm run test:e2e
 ```
 
-The unit suite covers elapsed-time accounting, pause/resume, increments, reverse order, skipped/out players, and time formatting.
+The unit suite covers elapsed-time accounting, pause/resume, increments, reverse order, skipped/out players, time formatting, and malformed setup/preset rejection. The production-browser suite exercises the 1440px desktop keyboard timer flow, the 390px scrollable player strip with Axe, and an offline service-worker reload. Install Chromium once with `npx playwright install chromium` before running `npm run test:e2e`.
 
 ## Player order keyboard shortcut
 
