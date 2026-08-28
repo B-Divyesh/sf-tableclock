@@ -1,1 +1,1 @@
-Time every player's turn for two to eight board-game players sharing one phone.
+Time every board-game turn on one shared phone.

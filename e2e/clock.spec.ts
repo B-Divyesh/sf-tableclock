@@ -485,6 +485,21 @@ test('390px first screen and running state fit, expose touch targets, and pass A
   expect(results.violations.filter((violation) => ['serious', 'critical'].includes(violation.impact ?? ''))).toEqual([]);
 });
 
+test('390px legal routes keep the return link as a 44px touch target', async ({ page }) => {
+  await page.setViewportSize({ width: 390, height: 844 });
+  for (const route of ['/privacy', '/terms']) {
+    await page.goto(route);
+    const returnLink = page.getByRole('link', { name: 'Back to the clock', exact: true });
+    await expect(returnLink).toBeVisible();
+    const box = await returnLink.boundingBox();
+    expect(box).not.toBeNull();
+    expect(box!.width).toBeGreaterThanOrEqual(44);
+    expect(box!.height).toBeGreaterThanOrEqual(44);
+    const results = await new AxeBuilder({ page }).analyze();
+    expect(results.violations.filter((violation) => ['serious', 'critical'].includes(violation.impact ?? ''))).toEqual([]);
+  }
+});
+
 test('keyboard controls, dialog focus, reduced motion, and console stay clean', async ({ page }) => {
   const errors: string[] = [];
   page.on('console', (message) => { if (message.type() === 'error') errors.push(message.text()); });

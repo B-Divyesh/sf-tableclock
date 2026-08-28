@@ -117,6 +117,9 @@ button:disabled { cursor: not-allowed; opacity: .38; }
 .how-it-works h2 { margin: 0; font: 800 clamp(28px, 4vw, 38px)/1 var(--display); letter-spacing: -.035em; }.how-it-works ol { display: grid; grid-template-columns: repeat(3, 1fr); gap: 20px; margin: 24px 0 0; padding: 0; list-style: none; counter-reset: steps; }.how-it-works li { line-height: 1.5; }.how-it-works li::before { counter-increment: steps; content: "0" counter(steps); display: block; margin-bottom: 8px; color: var(--tomato); font-weight: 950; letter-spacing: .12em; }
 .site-footer { display: flex; justify-content: space-between; gap: 24px; padding: 28px clamp(16px, 5vw, 64px) max(28px, env(safe-area-inset-bottom)); color: var(--ink-soft); border-top: 2px solid var(--ink); font-size: 14px; line-height: 1.6; }.site-footer > span:last-child { display: flex; flex-wrap: wrap; align-items: center; gap: 4px 14px; }.site-footer a { min-height: 44px; display: inline-flex; align-items: center; }
 .site-footer a, .text-link { color: var(--tomato); font-weight: 800; text-underline-offset: 3px; }
+/* Legal copy is intentionally roomy; its way back needs the same generous
+   target as the rest of the clock, not just an underlined text line. */
+.legal-page .text-link { min-height: 44px; display: inline-flex; align-items: center; padding-inline: 8px; margin-inline: -8px; }
 .legal-page { width: min(760px, calc(100% - 32px)); min-height: calc(100dvh - 160px); margin: 0 auto; padding: 72px 0; }
 .legal-page h1 { max-width: 720px; font-size: clamp(44px, 8vw, 76px); }
 .legal-page h2 { margin: 40px 0 8px; font: 800 28px/1.1 var(--display); }

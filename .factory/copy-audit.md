@@ -1,4 +1,4 @@
-# Copy audit — polish round 1
+# Copy audit — polish round 3
 
 Counts treat hyphenated terms and contractions as one word. No sentence exceeds 22 words. The landing page, its timer state, dialogs, errors, and README contain none of the banned marketing words.
 
@@ -150,3 +150,8 @@ All legal and error-page sentences are 21 words or fewer. They use the same term
 | Mode 4 | Per-turn limit |
 | Leaving a turn | end turn |
 | Temporarily excluded player | out |
+
+## Catalog description
+
+`Time every board-game turn on one shared phone.` is a 45-character, verb-first
+sentence. It has no banned marketing terms and matches the shared-device scope.
