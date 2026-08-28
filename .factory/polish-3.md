@@ -14,7 +14,15 @@ Live URL: https://tableclock.sociobot.in
 - `mobile`: Playwright `390px first screen and running state fit, expose touch targets, and pass Axe`.
 - `legal-target`: Playwright `390px legal routes keep the return link as a 44px touch target`.
 - `local-check`: `/opt/fleet/lib/verify-url.sh` against production preview for `/` and `/demo`.
+- `live`: `PLAYWRIGHT_BASE_URL=https://tableclock.sociobot.in npm run test:e2e -- --workers=1` (38/38).
+- `live-axe`: cold 390 px Axe checks for `/`, `/demo`, `/privacy`, `/terms`, and `/not-a-real-route`; zero serious/critical issues.
 - Screenshots: `.factory/evidence/polish-3/local-home-mobile.png`, `local-demo-mobile.png`, `local-privacy-mobile.png`, and `local-terms-mobile.png`.
+
+Every map row was rechecked by the cold live suite after deployment. The live
+screenshots are `.factory/evidence/polish-3/live-home-mobile.png`,
+`live-demo-mobile.png`, `live-privacy-mobile.png`, `live-terms-mobile.png`,
+and `live-404-mobile.png`; the successful URLs are respectively `/`, `/demo`,
+`/privacy`, `/terms`, and `/not-a-real-route` (404 by design).
 
 ## Finding map
 
@@ -43,7 +51,7 @@ Live URL: https://tableclock.sociobot.in
 | C-R01 | Kept “players” throughout the README. | `copy-audit.md`; `@claim:player-range`. |
 | C-R02 | Kept README mode names aligned with the interface. | `copy-audit.md`; four `@claim:mode-*` tests. |
 | C-R03 | Kept the short, non-speculative README introduction. | `copy-audit.md`. |
-| C-R04 | Kept the plain local-server instruction. | Fresh-clone `npm run dev` documentation check. |
+| C-R04 | Kept the plain local-server instruction. | `copy-audit.md`; fresh-clone README review. |
 | C-R05 | Kept direct build and preview instructions. | Fresh-clone `npm run build`. |
 | C-R06 | Kept plain test instructions instead of implementation jargon. | Fresh-clone `npm test`; `claims`. |
 | C-R07 | Kept a plain browser-suite description. | Fresh-clone `npm run test:e2e -- --workers=1`. |
@@ -96,4 +104,4 @@ Live URL: https://tableclock.sociobot.in
 
 ## Result
 
-No cumulative review finding remains open. The round-three change closes the only outstanding target-size gap without changing the product’s tabletop rules-sheet visual system or its static local-first PWA deployment class.
+No cumulative review finding remains open. Deployment `cf802a9c-8015-4382-bcbe-8985d299f738` serves the repaired `index-WVm0Utfa.js` build. The round-three change closes the only outstanding target-size gap without changing the product’s tabletop rules-sheet visual system or its static local-first PWA deployment class.
