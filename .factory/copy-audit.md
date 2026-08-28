@@ -25,7 +25,7 @@ Counts treat hyphenated terms and contractions as one word. No sentence exceeds 
 | Pass one shared phone around the table. | 7 | pass |
 | Who’s playing? | 2 | clear heading |
 | Select a player name, then use Arrow Up or Arrow Down to move that player in the turn order. | 19 | pass |
-| Tab still moves through every control. | 6 | `keyboard-reorder` claim |
+| Tab moves to the next setup control. | 7 | `keyboard-tab-order` claim |
 | Player [number] name | 3 | bound label |
 | Move [player] earlier / Move [player] later | 3 each | result-naming actions |
 | Remove [player] / Add player | 2 each | result-naming actions |
@@ -68,7 +68,7 @@ Counts treat hyphenated terms and contractions as one word. No sentence exceeds 
 | Tap anywhere here to end turn / Press start below | 6 / 3 | clear next step |
 | Player order. | 2 | pass |
 | Use Left and Right Arrow keys to review players that extend beyond the screen. | 14 | pass |
-| Reverse / Pause / Start / Options | 1 each | clear clock actions |
+| Reverse / Pause / Start / Open clock options | 1 / 1 / 1 / 3 | clear clock actions |
 | Sync not included | 3 | `no-cross-phone` claim |
 | Sound cues — Short local tones only | 6 | `local-sound` claim |
 | Vibration — If this device allows it | 6 | `turn-vibration` claim |

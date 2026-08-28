@@ -19,6 +19,7 @@ let wakeLock: WakeLockSentinel | null = null;
 let deferredInstall: Event | null = null;
 let toastTimer = 0;
 let isDemo = false;
+const focusIntentKey = 'tableclock:focus-on-next-load';
 
 const escapeHtml = (value: string) => value.replace(/[&<>'"]/g, (char) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', "'": '&#39;', '"': '&quot;' })[char]!);
 
@@ -47,6 +48,15 @@ function siteHeader(): string {
     <a class="wordmark" href="/" data-nav aria-label="Tableclock home"><span aria-hidden="true">↻</span> Tableclock</a>
     <nav class="site-nav" aria-label="Main navigation"><a href="/demo" data-nav>Demo</a><a href="/privacy" data-nav>Privacy</a><a href="/terms" data-nav>Terms</a></nav>
     <div class="header-actions"><span class="network-state" data-network>${navigator.onLine ? 'Online' : 'Offline-ready'}</span><button class="quiet-button" data-action="install" hidden>Install app</button></div>
+  </header>`;
+}
+
+function gameHeader(): string {
+  return `<header class="game-header">
+    <a class="wordmark game-wordmark" href="/" data-nav aria-label="Tableclock home"><span aria-hidden="true">↻</span> Tableclock</a>
+    <p class="turn-meta">Turn ${game?.turnNumber ?? 1} · ${game ? modeLabel(game.settings.mode) : ''}</p>
+    <nav class="game-nav" aria-label="Clock navigation"><a href="/privacy" data-nav>Privacy</a><a href="/terms" data-nav>Terms</a></nav>
+    <p class="sync-unavailable" aria-label="Cross-phone sync is not included in this release"><span aria-hidden="true">↔</span> Sync not included</p>
   </header>`;
 }
 
@@ -100,7 +110,7 @@ function renderSetup(message = ''): void {
 
       <section class="setup-sheet" aria-labelledby="setup-title">
         <div class="section-heading"><div><p class="step-mark">01</p><h2 id="setup-title">Who’s playing?</h2></div><span>${setup.players.length} / 8</span></div>
-        <p class="setup-help" id="player-order-help">Select a player name, then use Arrow Up or Arrow Down to move that player in the turn order. Tab still moves through every control.</p>
+        <p class="setup-help" id="player-order-help">Select a player name, then use Arrow Up or Arrow Down to move that player in the turn order. Tab moves to the next setup control.</p>
         <div class="player-list" data-player-list>${setup.players.map((player, index) => `
           <div class="player-row" data-player-id="${player.id}">
             <span class="player-token" style="--player:${player.color}" aria-hidden="true">${index + 1}</span>
@@ -156,11 +166,7 @@ function renderGame(): void {
   const values = activeValues(game);
   const shown = game.settings.mode === 'countup' ? values.elapsedMs : values.remainingMs;
   app.innerHTML = `
-    <header class="game-header">
-      <button class="wordmark game-wordmark" data-action="game-menu" aria-haspopup="dialog"><span aria-hidden="true">↻</span> Tableclock <span class="menu-cue">Menu</span></button>
-      <p class="turn-meta">Turn ${game.turnNumber} · ${modeLabel(game.settings.mode)}</p>
-      <p class="sync-unavailable" aria-label="Cross-phone sync is not included in this release"><span aria-hidden="true">↔</span> Sync not included</p>
-    </header>
+    ${gameHeader()}
     ${demoBanner()}
     <main id="main" class="game-board" style="--active-color:${active.color};--running-strip:${RUNNING_STRIP_COLOR};--out-label:${OUT_LABEL_COLOR}">
       <h1 class="sr-only" tabindex="-1">Game clock</h1>
@@ -180,10 +186,9 @@ function renderGame(): void {
     <nav class="control-dock" aria-label="Clock controls">
       <button class="dock-button" data-action="reverse"><span aria-hidden="true">⇄</span><span>Reverse</span></button>
       <button class="pause-button" data-action="toggle-run"><span aria-hidden="true">${game.running ? 'Ⅱ' : '▶'}</span><span>${game.running ? 'Pause' : 'Start'}</span></button>
-      <button class="dock-button" data-action="game-menu"><span aria-hidden="true">•••</span><span>Options</span></button>
+      <button class="dock-button" data-action="game-menu"><span aria-hidden="true">•••</span><span>Open clock options</span></button>
     </nav>
-    <div class="toast" role="status" aria-live="polite" data-toast hidden></div>
-    <div class="route-announcer sr-only" role="status" aria-live="polite"></div>
+    ${footer()}
     ${gameDialogs()}`;
   if (game.running) startTicker();
 }
@@ -314,7 +319,7 @@ function handleAction(action: string, button: HTMLElement, pointerActivated = fa
     game = createGame(setup);
     persistSetup(); persistGame(); renderGame();
   } else if (action === 'try-demo') {
-    location.assign('/demo');
+    navigateWithFocus('/demo');
   } else if (action === 'reset-demo') {
     void resetDemo();
   } else if (action === 'start-real') {
@@ -436,6 +441,19 @@ function renderNotFound(): void {
   app.innerHTML = `${siteHeader()}<main id="main" class="legal-page not-found"><p class="eyebrow">404</p><h1 tabindex="-1">This table has no page</h1><p>The link may be old or misspelled. Return to your turn timer.</p><p><a class="primary-link" href="/" data-nav>Return to Tableclock</a></p></main>${footer()}`;
 }
 
+function navigateWithFocus(url: string): void {
+  try { sessionStorage.setItem(focusIntentKey, 'true'); } catch { /* Focus restoration is progressive enhancement. */ }
+  location.assign(url);
+}
+
+function consumeFocusIntent(): boolean {
+  try {
+    const requested = sessionStorage.getItem(focusIntentKey) === 'true';
+    sessionStorage.removeItem(focusIntentKey);
+    return requested;
+  } catch { return false; }
+}
+
 function route(announce = false): void {
   const path = location.pathname.replace(/\/$/, '') || '/';
   if (path === '/privacy') legalPage('privacy');
@@ -478,7 +496,7 @@ async function resetDemo(): Promise<void> {
 
 async function leaveDemo(): Promise<void> {
   if (isDemo) await clearLocal();
-  location.assign('/');
+  navigateWithFocus('/');
 }
 
 async function boot(): Promise<void> {
@@ -509,7 +527,7 @@ async function boot(): Promise<void> {
     game = demoGame(setup);
     await Promise.all([writeLocal('setup', setup), writeLocal('game', game)]);
   }
-  route();
+  route(consumeFocusIntent());
   if ('serviceWorker' in navigator) {
     navigator.serviceWorker.register('/sw.js').then((registration) => {
       registration.addEventListener('updatefound', () => {

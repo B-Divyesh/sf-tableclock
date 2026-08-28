@@ -4,7 +4,7 @@ import { readFile } from 'node:fs/promises';
 
 async function openDemoSetup(page: Page): Promise<void> {
   await page.goto('/demo');
-  await page.getByRole('button', { name: /tableclock menu/i }).click();
+  await page.getByRole('button', { name: 'Open clock options', exact: true }).click();
   page.once('dialog', (dialog) => dialog.accept());
   await page.getByRole('button', { name: /end game and return to setup/i }).click();
   await expect(page.getByRole('heading', { level: 1 })).toHaveText('Time every player’s turn');
@@ -47,6 +47,8 @@ test('@claim:demo-seed opens the one-click running four-player sample', async ({
   await expect(page).toHaveURL(/\/demo$/);
   await expect(page).toHaveTitle('Demo — Tableclock');
   await expect(page.getByRole('heading', { level: 1 })).toHaveText('Game clock');
+  await expect(page.locator('main h1')).toBeFocused();
+  await expect(page.locator('.route-announcer')).toHaveText('Game clock');
   await expect(page.locator('.demo-banner')).toContainText('Demo — sample data, nothing is saved');
   await expect(page.locator('.active-clock')).toContainText('Priya');
   await expect(page.locator('.turn-meta')).toContainText('Turn 3');
@@ -152,7 +154,7 @@ test('@claim:same-origin sends no demo data or activity to another origin', asyn
   await page.goto('/demo');
   const expectedOrigin = new URL(page.url()).origin;
   await page.locator('.active-clock').click();
-  await page.getByRole('button', { name: /tableclock menu/i }).click();
+  await page.getByRole('button', { name: 'Open clock options', exact: true }).click();
   await page.getByRole('button', { name: /close/i }).click();
   await page.getByRole('button', { name: /start for real/i }).click();
   await page.locator('[data-player-name]').first().fill('Real Ada');
@@ -258,6 +260,26 @@ test('@claim:keyboard-reorder moves a player, retains focus, and matches the mov
   await expect(page.locator('.player-row').first().locator('[data-move="down"]')).toBeFocused();
   await page.locator('.player-row').first().locator('[data-move="down"]').click();
   await expect(page.locator('[data-player-name]').nth(1)).toHaveValue('Lionel');
+});
+
+test('@claim:keyboard-tab-order tabs through each setup control without a trap', async ({ page }) => {
+  await openDemoSetup(page);
+  const controls = page.locator('.setup-sheet input:not([disabled]):not([type="radio"]), .setup-sheet input[type="radio"]:checked, .setup-sheet button:not([disabled]), .data-tools button:not([disabled]), .data-tools input:not([disabled])');
+  const count = await controls.count();
+  expect(count).toBeGreaterThan(15);
+  await controls.first().focus();
+  for (let index = 1; index < count; index += 1) {
+    await page.keyboard.press('Tab');
+    await expect(controls.nth(index)).toBeFocused();
+  }
+  await page.keyboard.press('Tab');
+  await expect(page.locator('.site-footer').getByRole('link', { name: 'Privacy' })).toBeFocused();
+});
+
+test('the skip link is the first keyboard stop', async ({ page }) => {
+  await page.goto('/?new=1');
+  await page.keyboard.press('Tab');
+  await expect(page.locator('.skip-link')).toBeFocused();
 });
 
 test('@claim:setup-export downloads the current names and clock rules', async ({ page }) => {
@@ -416,6 +438,21 @@ test('route titles, metadata, focus, scroll restoration, legal links, and the st
   await expect(page.getByRole('link', { name: /return to tableclock/i })).toHaveAttribute('href', '/');
 });
 
+test('the one-click demo keeps the site shell and hands focus to the game heading', async ({ page }) => {
+  await page.goto('/?new=1');
+  await page.getByRole('button', { name: /try it with sample data/i }).click();
+  await expect(page).toHaveURL(/\/demo$/);
+  await expect(page.locator('main h1')).toHaveText('Game clock');
+  await expect(page.locator('main h1')).toBeFocused();
+  await expect(page.locator('.route-announcer')).toHaveText('Game clock');
+  await expect(page.locator('.game-header').getByRole('link', { name: 'Tableclock home' })).toHaveAttribute('href', '/');
+  await expect(page.locator('.game-header').getByRole('link', { name: 'Privacy' })).toHaveAttribute('href', '/privacy');
+  await expect(page.locator('.game-header').getByRole('link', { name: 'Terms' })).toHaveAttribute('href', '/terms');
+  await expect(page.locator('.site-footer')).toContainText('One shared-device turn timer for board-game tables.');
+  await expect(page.locator('.site-footer')).toContainText('Built by Param Factory');
+  await expect(page.locator('.site-footer')).toContainText(/build \w+/);
+});
+
 test('390px first screen and running state fit, expose touch targets, and pass Axe', async ({ page }) => {
   await page.setViewportSize({ width: 390, height: 844 });
   await page.goto('/?new=1');
@@ -431,6 +468,11 @@ test('390px first screen and running state fit, expose touch targets, and pass A
   let results = await new AxeBuilder({ page }).analyze();
   expect(results.violations.filter((violation) => ['serious', 'critical'].includes(violation.impact ?? ''))).toEqual([]);
   await page.goto('/demo');
+  for (const target of await page.locator('.game-header a, .site-footer a, button:not([disabled])').all()) {
+    if (!(await target.isVisible())) continue;
+    const box = await target.boundingBox();
+    expect(Math.min(box?.width ?? 0, box?.height ?? 0)).toBeGreaterThanOrEqual(44);
+  }
   for (const control of [page.getByRole('button', { name: 'Pause', exact: true }), page.getByRole('button', { name: /options/i })]) {
     const box = await control.boundingBox();
     expect(box).not.toBeNull();

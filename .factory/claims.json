@@ -126,6 +126,13 @@
     "sandbox": "fresh demo setup; use Arrow Up, assert order and focus, then use the matching move button"
   },
   {
+    "id": "keyboard-tab-order",
+    "claim": "Tab moves to the next setup control without a trap.",
+    "where": "setup helper",
+    "test": "npm run test:e2e -- --grep @claim:keyboard-tab-order",
+    "sandbox": "fresh demo setup; tab through every tabbable setup control in visible order, then assert Tab leaves setup for the footer without a trap"
+  },
+  {
     "id": "setup-export",
     "claim": "Export setup downloads the current player names and clock rules.",
     "where": "clock options, README",
