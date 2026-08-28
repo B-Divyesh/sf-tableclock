@@ -2,16 +2,24 @@
 
 ## Delivered
 
-- Reworked the first screen around the plain job: **Time every player’s turn**, its audience, an above-fold sample action, the real setup step, and three scoped facts.
-- Added `/demo` and `?demo=1`: a running Maya/Lionel/Priya/Sora Bank-with-increment sample in the separate `tableclock-demo` IndexedDB database. The banner has working Reset demo and Start for real controls; real games stay in `tableclock-local`.
-- Added the claim contract, demo notes, copy audit, seven clean-context browser claim tests, corrected terminology, and a verb-first catalog line.
-- Replaced the multi-phone implication with a one-shared-phone CSS spot-print while retaining the warm-paper, offset-ink identity. Added an icon-derived 1200×630 social image.
-- Added consistent SPA legal shells, route titles/metadata/canonical/OG/Twitter/apple-touch metadata, focus and live announcements on navigation, an in-product Tableclock 404, sitemap entries, and static security headers.
-- Improved 390 px layout and 44 px header/footer link targets. Removed divergent standalone legal documents so direct legal paths use the same renderer.
+All findings in `.factory/review-1.md`, including every copy and previously unlisted-claim item, are closed. The product now has a plain first screen, a one-click isolated running demo at `/demo` and `?demo=1`, 30 individually tested claims, complete route metadata/focus behavior, a real HTTP 404, unified legal pages, and a 390 px timer layout. The rules-sheet paper-and-spot-ink identity remains intact.
 
-## Verification
+The product commits are `9246604` (repair), `f434ff8` (Azure route normalization), and `1c908a7` (origin-independent production checks). Deployment `45c7ba38-1d62-48ea-ac6e-bde09b291f78` succeeded at https://tableclock.sociobot.in.
 
-Run from a clean checkout:
+## Verification evidence
+
+- Clean clone `/tmp/tableclock-polish-clean.JkZGNN`: `npm ci` found zero vulnerabilities; `npm test` passed 32/32; `npm run build` passed; Playwright passed 34/34; every one of the 30 claim commands passed separately.
+- Final current tree: unit/static 32/32, build passed, local Playwright 34/34, and live Playwright 34/34.
+- Live direct routes: `/`, `/demo`, `/?demo=1`, `/privacy`, `/privacy/`, `/terms`, `/terms/` returned 200. `/not-a-real-route` returned 404.
+- Live URL verifier: `/` and `/demo` passed with no console errors, `lang=en`, one h1, main, complete alt text, and labelled buttons.
+- Live Axe CLI 4.13.0: zero violations on home, demo, privacy, and terms.
+- Live mobile Lighthouse: Performance 100, Accessibility 100, Best Practices 100, SEO 100; LCP 936 ms; CLS 0; 20,638 bytes transferred.
+- Output budget: JS 32.76 KB raw / 11.03 KB gzip; CSS 19.27 KB raw / 5.06 KB gzip.
+- Live headers include CSP with `frame-ancestors 'none'`, HSTS, DENY framing, restrictive Permissions-Policy, no-sniff, revalidating HTML, immutable hashed assets, and `application/manifest+json`.
+- Local/live SHA-256 matches: `index.html`, hashed JS/CSS, `sw.js`, manifest, and `404.html`.
+- Screenshots and detailed mapping: `.factory/evidence/polish-1/` and `.factory/polish-1.md`.
+
+Run the full verification locally:
 
 ```sh
 npm ci
@@ -20,19 +28,6 @@ npm run build
 npm run test:e2e -- --workers=1
 ```
 
-This repair's clean-clone evidence (`/tmp/tableclock-clean.y68ui1`, cloned from `fcdfce1ccf2fd8b7761c8596526caa01c779fcaf`):
+## Known gaps and next steps
 
-- `npm test`: 28 tests passed.
-- `npm run build`: passed; `dist/index.html` exists; initial JS is 10.72 KB gzip and CSS is 4.97 KB gzip.
-- `npm run test:e2e -- --workers=1`: 8 passed, including Axe with no serious or critical violations, 390 px touch targets, route focus/404, privacy interception, and offline reload.
-- Every command in `.factory/claims.json` passed individually against `/demo`: `demo-sandbox`, `offline-reload`, `player-range`, `local-private`, `setup-link`, `one-shared-device`, and `turn-flow`. The complete clean-clone browser suite also passed: 8/8.
-- `/opt/fleet/lib/verify-url.sh http://127.0.0.1:4173/demo ...`: HTTP 200; no console errors; `lang=en`; one h1; main landmark; no missing image alt or unlabeled buttons. Its JSON and screenshots are in `.factory/evidence/verify-demo/` in the worker.
-- Lighthouse mobile on `/demo`: Performance 100, Accessibility 100, LCP 1354 ms, CLS 0. The JSON is `.factory/evidence/lighthouse-demo.json` in the worker.
-
-## Deployment
-
-Artifact remains a static Vite PWA. Deploy `dist/` using the static work-order target; `dist/staticwebapp.config.json` contains the SPA fallback, static 404 override, cache policy, CSP, and security headers. No repository work-order deployment credential or command was provided, so no external deployment was attempted.
-
-## Known gaps
-
-None for the review acceptance work. Cross-phone sync remains intentionally unavailable and is stated clearly above the fold. The public site still returned the prior shell immediately after the Git push; the repository contains no deploy workflow or credential, so the factory deployment runner must publish `dist/`.
+None for the reviewed release. Cross-phone sync remains intentionally outside this one-shared-phone release and is stated above the fold, in the timer, in legal copy, and in README.

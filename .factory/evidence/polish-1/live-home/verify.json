@@ -1,0 +1,14 @@
+{
+  "url": "https://tableclock.sociobot.in/",
+  "loadMs": 566,
+  "errors": [],
+  "a11y": {
+    "title": "Tableclock — turn timer for board-game groups",
+    "lang": "en",
+    "h1": 1,
+    "main": true,
+    "imgsMissingAlt": 0,
+    "buttonsUnlabeled": 0,
+    "textLength": 1442
+  }
+}
