@@ -20,12 +20,12 @@ npm run build
 npm run test:e2e -- --workers=1
 ```
 
-This repair's local evidence:
+This repair's clean-clone evidence (`/tmp/tableclock-clean.y68ui1`, cloned from `fcdfce1ccf2fd8b7761c8596526caa01c779fcaf`):
 
 - `npm test`: 28 tests passed.
 - `npm run build`: passed; `dist/index.html` exists; initial JS is 10.72 KB gzip and CSS is 4.97 KB gzip.
 - `npm run test:e2e -- --workers=1`: 8 passed, including Axe with no serious or critical violations, 390 px touch targets, route focus/404, privacy interception, and offline reload.
-- Every command in `.factory/claims.json` passed individually against `/demo`: `demo-sandbox`, `offline-reload`, `player-range`, `local-private`, `setup-link`, `one-shared-device`, and `turn-flow`.
+- Every command in `.factory/claims.json` passed individually against `/demo`: `demo-sandbox`, `offline-reload`, `player-range`, `local-private`, `setup-link`, `one-shared-device`, and `turn-flow`. The complete clean-clone browser suite also passed: 8/8.
 - `/opt/fleet/lib/verify-url.sh http://127.0.0.1:4173/demo ...`: HTTP 200; no console errors; `lang=en`; one h1; main landmark; no missing image alt or unlabeled buttons. Its JSON and screenshots are in `.factory/evidence/verify-demo/` in the worker.
 - Lighthouse mobile on `/demo`: Performance 100, Accessibility 100, LCP 1354 ms, CLS 0. The JSON is `.factory/evidence/lighthouse-demo.json` in the worker.
 
