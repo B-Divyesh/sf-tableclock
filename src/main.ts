@@ -63,7 +63,9 @@ function legalPage(kind: 'privacy' | 'terms'): void {
       <p class="eyebrow">The short version</p>
       <h1 tabindex="-1">${privacy ? 'Privacy and local data' : 'Terms for Tableclock'}</h1>
       ${privacy ? `
-        <p>Your player names, preferences, and unfinished clock stay in this browser.</p>
+        <p>Player names, preferences, and unfinished clocks stay in this browser.</p>
+        <h2>What leaves this device</h2><p>The app sends no player names, clock settings, or activity to a server.</p>
+        <h2>Accounts and tracking</h2><p>Tableclock does not use accounts. It does not use analytics.</p>
         <h2>Cross-phone sync</h2><p>Cross-phone sync is not included in this release.</p>` : `
         <p>The software is supplied “as is,” without a promise that a device will keep a background timer awake.</p>
         <h2>Timing responsibly</h2><p>Browser and operating-system limits can delay sound, vibration, or display updates. Do not use Tableclock for safety-critical, legal, sporting, or financial timing.</p>
@@ -75,7 +77,7 @@ function legalPage(kind: 'privacy' | 'terms'): void {
 
 function renderSetup(message = ''): void {
   stopTicker();
-  setMetadata(isDemo ? 'Demo — Tableclock' : 'Tableclock — turn timer for board-game groups', isDemo ? 'Try a running four-player board-game turn timer with sample data that stays separate from your games.' : 'Time every player’s turn on one shared phone for board-game groups of two to eight players.');
+  setMetadata(isDemo ? 'Demo — Tableclock' : 'Tableclock — turn timer for board-game groups', isDemo ? 'Try a running four-player board-game turn timer with sample data that stays separate from your games.' : 'Time every player’s turn on one shared phone for board-game groups of two to eight players.', isDemo ? '/demo' : '/');
   const timed = setup.settings.mode !== 'countup';
   // The print is deliberately a desktop/tablet detail. Omitting it from the
   // mobile DOM avoids an off-screen image decode on the timer's critical path.
@@ -91,7 +93,7 @@ function renderSetup(message = ''): void {
           <p class="lede">For board-game groups of two to eight players who want turns to keep moving.</p>
           <div class="hero-actions"><button class="primary-button" data-action="try-demo">Try it with sample data <span aria-hidden="true">→</span></button><a class="text-link setup-link" href="#setup-title">Set up your own clock</a></div>
           <p class="action-note">Loads a four-player game with a running clock.</p>
-          <ul class="plain-facts"><li>Runs on one shared phone.</li><li>Player names stay in this browser.</li><li>Cross-phone sync is not included.</li></ul>
+          <ul class="plain-facts"><li>Free. Works offline after the first visit.</li><li>Player names stay in this browser.</li><li>Runs on one shared phone. Cross-phone sync is not included.</li></ul>
         </div>
         ${showTablePrint ? '<figure class="single-phone-print" aria-label="One shared phone and cardboard turn markers on a board-game table"><span class="print-phone">↻</span><span class="print-marker marker-one">1</span><span class="print-marker marker-two">2</span><span class="print-marker marker-three">3</span><figcaption>Pass one shared phone around the table.</figcaption></figure>' : ''}
       </section>
@@ -130,7 +132,8 @@ function renderSetup(message = ''): void {
         </div>
       </section>
       <section class="how-it-works" aria-labelledby="how-title"><p class="step-mark">03</p><h2 id="how-title">Keep turns moving in three steps</h2><ol><li><strong>Name the players.</strong> Put them in turn order.</li><li><strong>Choose a clock.</strong> Pick the timing rule your table uses.</li><li><strong>Tap the active field.</strong> The next player starts.</li></ol></section>
-      <aside class="offline-note"><span aria-hidden="true">✦</span><p><strong>Install it from this site.</strong><br>After the first visit, the demo keeps working without a connection.</p></aside>
+      <section class="limits-note" aria-labelledby="limits-title"><p class="step-mark">Scope</p><h2 id="limits-title">What this timer does not do</h2><p>It does not track scores. It does not connect phones. Everyone uses the same device at the table.</p></section>
+      <aside class="offline-note"><span aria-hidden="true">✦</span><p><strong>Install it from this site.</strong><br>The demo keeps working without a connection after your first visit.</p></aside>
       <div class="data-tools"><button class="text-button" data-action="import">Import a setup</button><input class="sr-only" type="file" accept="application/json" data-import-file aria-label="Choose a Tableclock setup file"></div>
     </main>
     ${footer()}
@@ -148,7 +151,7 @@ function dialogs(): string {
 
 function renderGame(): void {
   if (!game) return;
-  setMetadata(`${game.players[game.activeIndex]?.name ?? 'Clock'}’s turn — Tableclock`, 'A running Tableclock turn timer for one shared board-game table.');
+  setMetadata(isDemo ? 'Demo — Tableclock' : `${game.players[game.activeIndex]?.name ?? 'Clock'}’s turn — Tableclock`, isDemo ? 'Try a running four-player board-game turn timer with isolated sample data.' : 'A running Tableclock turn timer for one shared board-game table.', isDemo ? '/demo' : '/');
   const active = game.players[game.activeIndex]!;
   const values = activeValues(game);
   const shown = game.settings.mode === 'countup' ? values.elapsedMs : values.remainingMs;
@@ -315,7 +318,7 @@ function handleAction(action: string, button: HTMLElement, pointerActivated = fa
   } else if (action === 'reset-demo') {
     void resetDemo();
   } else if (action === 'start-real') {
-    location.assign('/');
+    void leaveDemo();
   } else if (action === 'toggle-run') {
     if (!game) return;
     game = game.running ? pause(game) : startOrResume(game);
@@ -332,7 +335,7 @@ function handleAction(action: string, button: HTMLElement, pointerActivated = fa
     (document.querySelector('#game-menu') as HTMLDialogElement)?.showModal();
   } else if (action === 'share-preset') {
     const dialog = document.querySelector<HTMLDialogElement>('#share-dialog')!;
-    const url = new URL(location.href); url.pathname = isDemo ? '/demo' : '/'; url.search = ''; url.searchParams.set('preset', encodePreset(setup));
+    const url = new URL(location.href); url.pathname = isDemo ? '/demo' : '/'; url.search = ''; url.hash = new URLSearchParams({ preset: encodePreset(setup) }).toString();
     document.querySelector<HTMLInputElement>('#share-url')!.value = url.toString(); dialog.showModal();
   } else if (action === 'copy-preset') {
     const input = document.querySelector<HTMLInputElement>('#share-url')!; input.select();
@@ -444,7 +447,7 @@ function route(announce = false): void {
     window.scrollTo({ top: history.state?.scrollY ?? 0, behavior: 'auto' });
     requestAnimationFrame(() => {
       const heading = document.querySelector<HTMLElement>('main h1');
-      heading?.focus();
+      heading?.focus({ preventScroll: true });
       const announcer = document.querySelector<HTMLElement>('.route-announcer');
       if (announcer && heading) announcer.textContent = heading.textContent ?? '';
     });
@@ -456,12 +459,26 @@ function demoSetup(): SavedSetup {
   return { version: 1, players: names.map((name, index) => makePlayer(name, index)), settings: { ...DEFAULT_SETTINGS, mode: 'fischer', durationSec: 900, incrementSec: 30, nudgeSec: 75 } };
 }
 
+function demoGame(sample: SavedSetup, now = Date.now()): GameState {
+  // Two completed turns make the sample feel like a game already in progress.
+  let seeded = startOrResume(createGame(sample, now - 80_000), now - 80_000);
+  seeded = endTurn(seeded, now - 49_000);
+  seeded = endTurn(seeded, now - 21_000);
+  return seeded;
+}
+
 async function resetDemo(): Promise<void> {
   if (!isDemo) return;
   await clearLocal();
   setup = demoSetup();
-  game = startOrResume(createGame(setup));
-  persistSetup(); persistGame(); renderGame(); showToast('Fresh sample game loaded.');
+  game = demoGame(setup);
+  await Promise.all([writeLocal('setup', setup), writeLocal('game', game)]);
+  renderGame(); showToast('Fresh sample game loaded.');
+}
+
+async function leaveDemo(): Promise<void> {
+  if (isDemo) await clearLocal();
+  location.assign('/');
 }
 
 async function boot(): Promise<void> {
@@ -471,21 +488,26 @@ async function boot(): Promise<void> {
   const savedGame = await readLocal<GameState>('game');
   const validSavedSetup = parseImportedSetup(savedSetup);
   if (validSavedSetup) setup = validSavedSetup;
-  const presetParam = new URLSearchParams(location.search).get('preset');
+  const presetParam = new URLSearchParams(location.hash.slice(1)).get('preset') ?? new URLSearchParams(location.search).get('preset');
+  let presetApplied = false;
   if (presetParam) {
     const preset = decodePreset(presetParam);
     if (preset) {
+      presetApplied = true;
       setup = { version: 1, players: preset.n.map((name, i) => ({ ...makePlayer(String(name), i), remainingMs: preset.d * 1000 })), settings: { ...DEFAULT_SETTINGS, mode: preset.m, durationSec: preset.d, incrementSec: preset.i, nudgeSec: preset.a } };
-      persistSetup(); history.replaceState({}, '', '/');
+      game = null;
+      await writeLocal('setup', setup);
+      await writeLocal('game', null);
+      history.replaceState({}, '', isDemo ? '/demo' : '/');
     }
   } else if (new URLSearchParams(location.search).has('new')) {
     await writeLocal('game', null);
     history.replaceState({}, '', '/');
   } else if (isValidGameState(savedGame)) game = savedGame;
-  if (isDemo && (!validSavedSetup || !isValidGameState(savedGame))) {
+  if (isDemo && !presetApplied && (!validSavedSetup || !isValidGameState(savedGame))) {
     setup = demoSetup();
-    game = startOrResume(createGame(setup));
-    persistSetup(); persistGame();
+    game = demoGame(setup);
+    await Promise.all([writeLocal('setup', setup), writeLocal('game', game)]);
   }
   route();
   if ('serviceWorker' in navigator) {

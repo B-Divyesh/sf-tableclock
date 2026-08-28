@@ -109,6 +109,9 @@ button:disabled { cursor: not-allowed; opacity: .38; }
 .offline-note > span { color: var(--tomato); font-size: 28px; }
 .offline-note p { margin: 0; line-height: 1.5; }
 .data-tools { max-width: 800px; margin: 10px auto 0; text-align: right; }
+.limits-note { max-width: 800px; margin: 48px auto 0; padding: 24px 0; border-top: 3px solid var(--ink); }
+.limits-note h2 { margin: 0 0 12px; font: 800 clamp(28px, 4vw, 38px)/1 var(--display); letter-spacing: -.035em; }
+.limits-note p { max-width: 620px; margin: 0; color: var(--ink-soft); font-size: 17px; line-height: 1.55; }
 
 .how-it-works { max-width: 800px; margin: 48px auto 0; padding: 28px; background: rgb(255 249 234 / 62%); border-top: 3px solid var(--ink); border-bottom: 3px solid var(--ink); }
 .how-it-works h2 { margin: 0; font: 800 clamp(28px, 4vw, 38px)/1 var(--display); letter-spacing: -.035em; }.how-it-works ol { display: grid; grid-template-columns: repeat(3, 1fr); gap: 20px; margin: 24px 0 0; padding: 0; list-style: none; counter-reset: steps; }.how-it-works li { line-height: 1.5; }.how-it-works li::before { counter-increment: steps; content: "0" counter(steps); display: block; margin-bottom: 8px; color: var(--tomato); font-weight: 950; letter-spacing: .12em; }
@@ -119,7 +122,7 @@ button:disabled { cursor: not-allowed; opacity: .38; }
 .legal-page h2 { margin: 40px 0 8px; font: 800 28px/1.1 var(--display); }
 .legal-page p { font-size: 18px; line-height: 1.65; }
 .primary-link { min-height: 48px; display: inline-flex; align-items: center; padding: 11px 18px; color: white; background: var(--tomato); border: 2px solid var(--ink); box-shadow: 3px 3px 0 var(--ink); font-weight: 900; text-decoration: none; }
-.demo-banner { min-height: 46px; display: flex; justify-content: center; align-items: center; flex-wrap: wrap; gap: 8px 18px; padding: 6px 16px; color: var(--cream); background: var(--ink); border-bottom: 2px solid var(--tomato); font-size: 14px; }.demo-banner .text-button { min-height: 32px; padding: 3px 0; color: var(--cream); font-size: 14px; }.demo-banner .text-button + .text-button { margin-left: 14px; }
+.demo-banner { min-height: 52px; display: flex; justify-content: center; align-items: center; flex-wrap: wrap; gap: 4px 18px; padding: 4px 16px; color: var(--cream); background: var(--ink); border-bottom: 2px solid var(--tomato); font-size: 14px; }.demo-banner .text-button { min-height: 44px; padding: 8px 2px; color: var(--cream); font-size: 14px; }.demo-banner .text-button + .text-button { margin-left: 14px; }
 
 dialog { width: min(600px, calc(100% - 28px)); max-height: calc(100dvh - 28px); padding: 0; color: var(--ink); background: var(--paper); border: 3px solid var(--ink); box-shadow: 9px 9px 0 rgb(32 29 25 / 45%); }
 dialog::backdrop { background: rgb(32 29 25 / 72%); backdrop-filter: blur(2px); }
@@ -147,6 +150,7 @@ dialog::backdrop { background: rgb(32 29 25 / 72%); backdrop-filter: blur(2px); 
 .turn-meta { margin: 0; color: var(--paper-deep); font-size: 14px; font-weight: 750; }
 .sync-unavailable { margin: 0; padding: 8px 12px; color: var(--cream); border: 1px solid rgb(255 249 234 / 45%); border-radius: 30px; font-size: 14px; font-weight: 800; }
 .game-board { height: calc(100dvh - 150px - env(safe-area-inset-bottom)); min-height: 420px; display: grid; grid-template-rows: minmax(250px, 1fr) auto; overflow: hidden; background: var(--ink); }
+.demo-banner + .game-board { height: calc(100dvh - 202px - env(safe-area-inset-bottom)); }
 .active-clock { position: relative; width: 100%; min-height: 250px; display: flex; flex-direction: column; align-items: center; justify-content: center; padding: 28px 20px; overflow: hidden; color: var(--cream); background-color: var(--active-color); background-image: radial-gradient(rgb(255 249 234 / 12%) 1px, transparent 1px); background-size: 6px 6px; border: 0; cursor: pointer; text-align: center; transition: filter 180ms ease, transform 180ms ease; }
 .active-clock::before, .active-clock::after { content: ""; position: absolute; width: 54px; height: 54px; opacity: .65; }
 .active-clock::before { top: 18px; left: 18px; border-top: 3px solid currentColor; border-left: 3px solid currentColor; }
@@ -180,6 +184,9 @@ dialog::backdrop { background: rgb(32 29 25 / 72%); backdrop-filter: blur(2px); 
 @media (max-width: 720px) {
   .site-header { min-height: 64px; padding-inline: 16px; }
   .network-state { display: none; }
+  .header-actions { display: none; }
+  .demo-banner { height: 72px; }
+  .demo-banner + .game-board { height: calc(100dvh - 222px - env(safe-area-inset-bottom)); }
   .setup-page { padding-top: 36px; padding-bottom: 56px; }
   .intro { display: block; margin-bottom: 40px; }
   .intro h1 { font-size: clamp(46px, 15vw, 68px); }
@@ -197,6 +204,11 @@ dialog::backdrop { background: rgb(32 29 25 / 72%); backdrop-filter: blur(2px); 
   .active-clock::before, .active-clock::after { width: 34px; height: 34px; }
   .clock-time { font-size: clamp(58px, 21vw, 92px); }
   .out-grid { grid-template-columns: 1fr; }
+}
+
+@media (max-height: 650px) {
+  .game-board { min-height: 308px; grid-template-rows: minmax(204px, 1fr) 104px; }
+  .active-clock { min-height: 204px; padding-block: 16px; }
 }
 
 @media (max-width: 390px) {

@@ -1,9 +1,9 @@
 {
   "id": "/?source=installed",
-  "name": "Tableclock — multiplayer turn timer",
+  "name": "Tableclock — board-game turn timer",
   "short_name": "Tableclock",
-  "description": "An offline turn timer for two to eight people around one table.",
-  "start_url": "/?v=1",
+  "description": "An offline turn timer for two to eight players sharing one device.",
+  "start_url": "/?v=2",
   "scope": "/",
   "display": "standalone",
   "orientation": "any",

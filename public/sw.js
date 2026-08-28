@@ -1,9 +1,11 @@
-const VERSION = 'tableclock-v1.0.3-polish-1';
+const VERSION = 'tableclock-v1.1.0-polish-1';
 const SHELL = [
   '/',
   '/offline.html',
+  '/404.html',
   '/manifest.webmanifest',
   '/icons/icon.svg',
+  '/icons/apple-touch-icon.png',
   '/icons/icon-192.png',
   '/icons/icon-512.png',
   '/icons/icon-maskable-512.png',
@@ -38,10 +40,15 @@ self.addEventListener('fetch', (event) => {
 
   if (event.request.mode === 'navigate') {
     event.respondWith(fetch(event.request).then((response) => {
-      const copy = response.clone();
-      caches.open(VERSION).then((cache) => cache.put('/', copy));
+      if (response.ok) {
+        const copy = response.clone();
+        caches.open(VERSION).then((cache) => cache.put('/', copy));
+      }
       return response;
-    }).catch(async () => (await caches.match('/')) || (await caches.match('/offline.html'))));
+    }).catch(async () => {
+      const knownRoute = ['/', '/demo', '/privacy', '/terms'].includes(url.pathname.replace(/\/$/, '') || '/');
+      return (await caches.match(knownRoute ? '/' : '/404.html')) || (await caches.match('/offline.html'));
+    }));
     return;
   }
 

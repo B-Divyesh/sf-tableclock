@@ -1,51 +1,212 @@
 [
   {
-    "id": "demo-sandbox",
-    "claim": "Try a running four-player sample without changing real games.",
-    "where": "landing action, demo banner, README",
-    "test": "npm run test:e2e -- --grep @claim:demo-sandbox",
-    "sandbox": "fresh browser context at /demo; assert the seeded running game and tableclock-demo database"
+    "id": "demo-seed",
+    "claim": "One click opens a running four-player sample.",
+    "where": "first-screen action, demo page, README",
+    "test": "npm run test:e2e -- --grep @claim:demo-seed",
+    "sandbox": "fresh browser context; enter from the first-screen action and directly through both /demo and ?demo=1"
+  },
+  {
+    "id": "demo-isolation",
+    "claim": "The demo never reads or changes a real game.",
+    "where": "demo banner, README, demo documentation",
+    "test": "npm run test:e2e -- --grep @claim:demo-isolation",
+    "sandbox": "save named real data, enter and change the demo, exit, then assert the real data is unchanged and demo storage is empty"
+  },
+  {
+    "id": "demo-reset",
+    "claim": "Reset demo restores the original sample.",
+    "where": "demo banner and demo documentation",
+    "test": "npm run test:e2e -- --grep @claim:demo-reset",
+    "sandbox": "advance the demo, reset it, then assert Priya is active on turn three with the seeded history"
+  },
+  {
+    "id": "demo-exit",
+    "claim": "Start for real discards demo data.",
+    "where": "demo banner and demo documentation",
+    "test": "npm run test:e2e -- --grep @claim:demo-exit",
+    "sandbox": "change the demo, choose Start for real, then assert the demo database is empty"
   },
   {
     "id": "offline-reload",
     "claim": "After the first visit, the demo works without a connection.",
-    "where": "landing limitations note, README",
+    "where": "landing facts and install note, offline page, manifest, README, llms.txt",
     "test": "npm run test:e2e -- --grep @claim:offline-reload",
-    "sandbox": "fresh context at /demo; obtain service-worker control, set offline, reload, and end a turn"
+    "sandbox": "fresh /demo context; obtain service-worker control, set offline, reload, and complete a turn"
   },
   {
     "id": "player-range",
     "claim": "The timer supports two to eight players.",
-    "where": "landing lede, README",
+    "where": "landing lede, manifest, README, llms.txt",
     "test": "npm run test:e2e -- --grep @claim:player-range",
-    "sandbox": "fresh setup; add through eight players and remove down to two, asserting the boundary controls"
+    "sandbox": "fresh demo setup; start valid two-player and eight-player clocks while asserting the controls reject one and nine"
   },
   {
-    "id": "local-private",
-    "claim": "Player names stay in this browser.",
-    "where": "landing facts, privacy page, README",
-    "test": "npm run test:e2e -- --grep @claim:local-private",
-    "sandbox": "fresh demo; assert the demo IndexedDB record exists and every observed request is same-origin"
+    "id": "free-use",
+    "claim": "Tableclock is free to use.",
+    "where": "landing facts",
+    "test": "npm run test:e2e -- --grep @claim:free-use",
+    "sandbox": "fresh demo; complete a turn and assert there is no account, subscription, or payment gate"
   },
   {
-    "id": "setup-link",
-    "claim": "A setup link includes player names and clock rules without uploading them.",
+    "id": "local-storage",
+    "claim": "Player names, preferences, and an unfinished clock stay in this browser.",
+    "where": "landing facts, privacy page, README, llms.txt",
+    "test": "npm run test:e2e -- --grep @claim:local-storage",
+    "sandbox": "fresh real namespace; save a named bank game, close the page, reopen it, and inspect tableclock-local"
+  },
+  {
+    "id": "same-origin",
+    "claim": "The app sends no player names, clock settings, or activity to a server.",
+    "where": "privacy page, README",
+    "test": "npm run test:e2e -- --grep @claim:same-origin",
+    "sandbox": "capture every request during complete demo and real turn flows; assert GET-only static requests with no XHR, fetch, or cross-origin traffic"
+  },
+  {
+    "id": "no-account",
+    "claim": "Tableclock does not use accounts.",
+    "where": "privacy page",
+    "test": "npm run test:e2e -- --grep @claim:no-account",
+    "sandbox": "complete a demo interaction, open privacy, and assert no account gate or account controls"
+  },
+  {
+    "id": "no-analytics",
+    "claim": "Tableclock does not use analytics.",
+    "where": "privacy page",
+    "test": "npm run test:e2e -- --grep @claim:no-analytics",
+    "sandbox": "capture the complete demo and privacy flow, then assert no XHR or fetch analytics traffic"
+  },
+  {
+    "id": "setup-link-roundtrip",
+    "claim": "A setup link restores every player name and clock rule.",
     "where": "setup-link dialog, README",
-    "test": "npm run test:e2e -- --grep @claim:setup-link",
-    "sandbox": "fresh demo; create a link, open it in another fresh page, and assert names/rules with same-origin requests only"
+    "test": "npm run test:e2e -- --grep @claim:setup-link-roundtrip",
+    "sandbox": "fresh demo setup; create a link, open it on a second page, and assert all four names and every rule"
+  },
+  {
+    "id": "setup-link-local",
+    "claim": "A setup link does not upload its player names or clock rules.",
+    "where": "setup-link dialog, README",
+    "test": "npm run test:e2e -- --grep @claim:setup-link-local",
+    "sandbox": "create and open a fragment-based demo setup link while asserting no request URL or body carries the payload"
+  },
+  {
+    "id": "mode-count-up",
+    "claim": "Count up tracks time used.",
+    "where": "clock-mode control, README",
+    "test": "npm run test:e2e -- --grep @claim:mode-count-up",
+    "sandbox": "fresh demo setup; select Count up, start, and assert elapsed time increases"
+  },
+  {
+    "id": "mode-time-bank",
+    "claim": "Time bank gives each player one decreasing budget.",
+    "where": "clock-mode control, README",
+    "test": "npm run test:e2e -- --grep @claim:mode-time-bank",
+    "sandbox": "fresh demo setup; start a five-second Time bank and assert the active bank decreases"
+  },
+  {
+    "id": "mode-increment",
+    "claim": "Bank with increment returns the chosen increment after a turn.",
+    "where": "clock-mode control, README",
+    "test": "npm run test:e2e -- --grep @claim:mode-increment",
+    "sandbox": "fresh demo setup; start five seconds with a three-second increment, end a turn, and assert the returned time"
+  },
+  {
+    "id": "mode-per-turn",
+    "claim": "Per-turn limit gives the next player a fresh limit.",
+    "where": "clock-mode control, README",
+    "test": "npm run test:e2e -- --grep @claim:mode-per-turn",
+    "sandbox": "fresh demo setup; spend part of a five-second turn, advance, and assert the next player receives about five seconds"
+  },
+  {
+    "id": "keyboard-reorder",
+    "claim": "Arrow keys reorder players, retain focus, and match the move buttons.",
+    "where": "setup helper, README",
+    "test": "npm run test:e2e -- --grep @claim:keyboard-reorder",
+    "sandbox": "fresh demo setup; use Arrow Up, assert order and focus, then use the matching move button"
+  },
+  {
+    "id": "setup-export",
+    "claim": "Export setup downloads the current player names and clock rules.",
+    "where": "clock options, README",
+    "test": "npm run test:e2e -- --grep @claim:setup-export",
+    "sandbox": "fresh demo; download the setup and parse its names and timing settings"
+  },
+  {
+    "id": "setup-import",
+    "claim": "Import a setup restores valid player names and clock rules.",
+    "where": "setup action, README",
+    "test": "npm run test:e2e -- --grep @claim:setup-import",
+    "sandbox": "fresh demo setup; import a valid setup file and assert its names, mode, and duration"
   },
   {
     "id": "one-shared-device",
-    "claim": "Tableclock runs on one shared phone; cross-phone sync is not included.",
-    "where": "landing facts, running clock, privacy/terms, README",
+    "claim": "Tableclock runs on one shared phone.",
+    "where": "landing facts, illustration, running clock, terms, README",
     "test": "npm run test:e2e -- --grep @claim:one-shared-device",
-    "sandbox": "fresh landing page; assert the visible scope facts and absence of a sync action"
+    "sandbox": "fresh demo setup; assert the visible one-device statement and absence of room or sync actions"
+  },
+  {
+    "id": "no-scorekeeping",
+    "claim": "Tableclock does not track scores.",
+    "where": "landing limitations and README",
+    "test": "npm run test:e2e -- --grep @claim:no-scorekeeping",
+    "sandbox": "fresh demo setup; assert the visible limitation and absence of score controls"
+  },
+  {
+    "id": "no-cross-phone",
+    "claim": "Tableclock does not connect or sync phones.",
+    "where": "landing facts and limitations, running clock, privacy, terms, README",
+    "test": "npm run test:e2e -- --grep @claim:no-cross-phone",
+    "sandbox": "fresh demo setup and running clock; assert the limitation and absence of room or sync actions"
   },
   {
     "id": "turn-flow",
     "claim": "Tapping the active field starts the next player’s turn.",
     "where": "How it works section",
     "test": "npm run test:e2e -- --grep @claim:turn-flow",
-    "sandbox": "fresh demo; tap the running active field and assert the next named player is active"
+    "sandbox": "fresh running demo on turn three; tap Priya's active field and assert Sora begins turn four"
+  },
+  {
+    "id": "pause-resume",
+    "claim": "Pause stops the active clock, and Start resumes it.",
+    "where": "running clock controls",
+    "test": "npm run test:e2e -- --grep @claim:pause-resume",
+    "sandbox": "fresh running demo; pause, assert the display stays fixed, resume, and assert it changes"
+  },
+  {
+    "id": "reverse-order",
+    "claim": "Reverse changes the direction of the next turn.",
+    "where": "running clock controls",
+    "test": "npm run test:e2e -- --grep @claim:reverse-order",
+    "sandbox": "fresh running demo on Priya; reverse direction and assert Lionel follows"
+  },
+  {
+    "id": "player-status",
+    "claim": "Mark out skips a player until Bring back restores them.",
+    "where": "clock options",
+    "test": "npm run test:e2e -- --grep @claim:player-status",
+    "sandbox": "fresh running demo; mark Sora out, assert the turn skips her, then bring her back"
+  },
+  {
+    "id": "local-sound",
+    "claim": "Sound cues are short tones made on this device.",
+    "where": "clock options",
+    "test": "npm run test:e2e -- --grep @claim:local-sound",
+    "sandbox": "fresh running demo with an instrumented Web Audio API; end a turn and assert a local oscillator starts with no data request"
+  },
+  {
+    "id": "turn-vibration",
+    "claim": "A pointer tap can vibrate the device at a turn change when vibration is enabled.",
+    "where": "clock options",
+    "test": "npm run test:e2e -- --grep @claim:turn-vibration",
+    "sandbox": "fresh running demo with an instrumented Vibration API; tap the active field and assert the turn pattern"
+  },
+  {
+    "id": "pwa-install",
+    "claim": "Tableclock can be installed from the site.",
+    "where": "landing install note, README",
+    "test": "npm run test:e2e -- --grep @claim:pwa-install",
+    "sandbox": "fresh demo; validate the standalone manifest, maskable icon, registered service worker, and controlled reload"
   }
 ]
