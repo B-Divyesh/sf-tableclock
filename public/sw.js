@@ -1,4 +1,4 @@
-const VERSION = 'tableclock-v1.1.0-polish-1';
+const VERSION = 'tableclock-v1.1.0-polish-2';
 const SHELL = [
   '/',
   '/offline.html',
