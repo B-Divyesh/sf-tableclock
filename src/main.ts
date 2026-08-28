@@ -4,7 +4,7 @@ import { vibrationPattern, type CueKind } from './haptics';
 import { decodePreset, encodePreset } from './presets';
 import { OUT_LABEL_COLOR, RUNNING_STRIP_COLOR } from './running-colors';
 import { movePlayer } from './setup';
-import { readLocal, writeLocal } from './storage';
+import { clearLocal, readLocal, setStorageNamespace, writeLocal } from './storage';
 import type { ClockMode, GameState, SavedSetup } from './types';
 import { isValidGameState, parseImportedSetup, setupValidationError } from './validation';
 
@@ -18,53 +18,82 @@ let audio: AudioContext | null = null;
 let wakeLock: WakeLockSentinel | null = null;
 let deferredInstall: Event | null = null;
 let toastTimer = 0;
+let isDemo = false;
 
 const escapeHtml = (value: string) => value.replace(/[&<>'"]/g, (char) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', "'": '&#39;', '"': '&quot;' })[char]!);
 
 function modeLabel(mode: ClockMode): string {
-  return ({ countup: 'Count up', bank: 'Time bank', fischer: 'Bank + increment', fixed: 'Each turn' })[mode];
+  return ({ countup: 'Count up', bank: 'Time bank', fischer: 'Bank with increment', fixed: 'Per-turn limit' })[mode];
+}
+
+function setMeta(name: string, value: string, property = false): void {
+  const selector = property ? `meta[property="${name}"]` : `meta[name="${name}"]`;
+  let node = document.head.querySelector<HTMLMetaElement>(selector);
+  if (!node) { node = document.createElement('meta'); property ? node.setAttribute('property', name) : node.name = name; document.head.append(node); }
+  node.content = value;
+}
+
+function setMetadata(title: string, description: string, path = location.pathname): void {
+  document.title = title;
+  setMeta('description', description);
+  const canonical = document.head.querySelector<HTMLLinkElement>('link[rel="canonical"]') ?? document.head.appendChild(Object.assign(document.createElement('link'), { rel: 'canonical' }));
+  canonical.href = new URL(path, location.origin).toString();
+  setMeta('og:title', title, true); setMeta('og:description', description, true); setMeta('og:type', 'website', true); setMeta('og:url', canonical.href, true); setMeta('og:image', new URL('/assets/tableclock-social.png', location.origin).toString(), true);
+  setMeta('twitter:card', 'summary_large_image'); setMeta('twitter:title', title); setMeta('twitter:description', description); setMeta('twitter:image', new URL('/assets/tableclock-social.png', location.origin).toString());
+}
+
+function siteHeader(): string {
+  return `<header class="site-header">
+    <a class="wordmark" href="/" data-nav aria-label="Tableclock home"><span aria-hidden="true">↻</span> Tableclock</a>
+    <nav class="site-nav" aria-label="Main navigation"><a href="/demo" data-nav>Demo</a><a href="/privacy" data-nav>Privacy</a><a href="/terms" data-nav>Terms</a></nav>
+    <div class="header-actions"><span class="network-state" data-network>${navigator.onLine ? 'Online' : 'Offline-ready'}</span><button class="quiet-button" data-action="install" hidden>Install app</button></div>
+  </header>`;
+}
+
+function demoBanner(): string {
+  return isDemo ? `<aside class="demo-banner" aria-label="Demo controls"><span><strong>Demo</strong> — sample data, nothing is saved</span><span><button class="text-button" data-action="reset-demo">Reset demo</button><button class="text-button" data-action="start-real">Start for real</button></span></aside>` : '';
 }
 
 function legalPage(kind: 'privacy' | 'terms'): void {
   const privacy = kind === 'privacy';
-  document.title = `${privacy ? 'Privacy' : 'Terms'} — Tableclock`;
+  setMetadata(`${privacy ? 'Privacy' : 'Terms'} — Tableclock`, privacy ? 'Learn what Tableclock stores on your device and what it never sends away.' : 'Read the plain terms for using Tableclock at your board-game table.');
   app.innerHTML = `
-    <header class="site-header"><a class="wordmark" href="/" data-nav><span aria-hidden="true">↻</span> Tableclock</a></header>
+    ${siteHeader()}
     <main id="main" class="legal-page">
       <p class="eyebrow">The short version</p>
-      <h1>${privacy ? 'Your table stays yours.' : 'Fair play, plain terms.'}</h1>
+      <h1 tabindex="-1">${privacy ? 'Privacy and local data' : 'Terms for Tableclock'}</h1>
       ${privacy ? `
-        <p>Tableclock has no accounts, advertising, analytics, or tracking. Your player names, preferences, and unfinished clock are stored only in your browser using IndexedDB.</p>
-        <h2>Cross-phone sync</h2><p>Cross-phone sync is not included in this release. Player names and clock state stay on this device unless you choose to export a setup file.</p>
-        <h2>Your controls</h2><p>You can export a setup as JSON, clear a game from the menu, or remove all Tableclock data by clearing this site's storage in your browser.</p>` : `
-        <p>Tableclock is provided free of charge for personal and group use. The software is supplied “as is,” without a promise that a device will keep a background timer awake.</p>
+        <p>Your player names, preferences, and unfinished clock stay in this browser.</p>
+        <h2>Cross-phone sync</h2><p>Cross-phone sync is not included in this release.</p>` : `
+        <p>The software is supplied “as is,” without a promise that a device will keep a background timer awake.</p>
         <h2>Timing responsibly</h2><p>Browser and operating-system limits can delay sound, vibration, or display updates. Do not use Tableclock for safety-critical, legal, sporting, or financial timing.</p>
         <h2>One shared device</h2><p>Tableclock is designed for one shared device at the table. Cross-phone sync is not included in this release.</p>`}
       <p><a class="text-link" href="/" data-nav>Back to the clock</a></p>
     </main>
-    <footer class="site-footer">© 2026 Tableclock · <a href="/privacy" data-nav>Privacy</a> · <a href="/terms" data-nav>Terms</a></footer>`;
+    ${footer()}`;
 }
 
 function renderSetup(message = ''): void {
   stopTicker();
-  document.title = 'Tableclock — take turns, not forever';
+  setMetadata(isDemo ? 'Demo — Tableclock' : 'Tableclock — turn timer for board-game groups', isDemo ? 'Try a running four-player board-game turn timer with sample data that stays separate from your games.' : 'Time every player’s turn on one shared phone for board-game groups of two to eight players.');
   const timed = setup.settings.mode !== 'countup';
   // The print is deliberately a desktop/tablet detail. Omitting it from the
   // mobile DOM avoids an off-screen image decode on the timer's critical path.
   const showTablePrint = !window.matchMedia('(max-width: 720px)').matches;
   app.innerHTML = `
-    <header class="site-header">
-      <a class="wordmark" href="/" aria-label="Tableclock home"><span aria-hidden="true">↻</span> Tableclock</a>
-      <div class="header-actions"><span class="network-state" data-network>${navigator.onLine ? 'Online' : 'Offline-ready'}</span><button class="quiet-button" data-action="install" hidden>Install app</button></div>
-    </header>
+    ${siteHeader()}
+    ${demoBanner()}
     <main id="main" class="setup-page">
       <section class="intro" aria-labelledby="main-title">
         <div class="intro-copy">
           <p class="eyebrow">A turn timer for the whole table</p>
-          <h1 id="main-title">Take turns.<br> <em>Not forever.</em></h1>
-          <p class="lede">Two to eight players, one clear clock. No account, no scorekeeping, and no signal required.</p>
+          <h1 id="main-title" tabindex="-1">Time every player’s turn</h1>
+          <p class="lede">For board-game groups of two to eight players who want turns to keep moving.</p>
+          <div class="hero-actions"><button class="primary-button" data-action="try-demo">Try it with sample data <span aria-hidden="true">→</span></button><a class="text-link setup-link" href="#setup-title">Set up your own clock</a></div>
+          <p class="action-note">Loads a four-player game with a running clock.</p>
+          <ul class="plain-facts"><li>Runs on one shared phone.</li><li>Player names stay in this browser.</li><li>Cross-phone sync is not included.</li></ul>
         </div>
-        ${showTablePrint ? '<figure class="table-print"><picture><source srcset="/assets/table-gathering.avif" type="image/avif"><img src="/assets/table-gathering.webp" width="720" height="480" alt="Five abstract phones arranged around a printed board-game table" fetchpriority="high" decoding="async"></picture><figcaption>One phone or a whole table.</figcaption></figure>' : ''}
+        ${showTablePrint ? '<figure class="single-phone-print" aria-label="One shared phone and cardboard turn markers on a board-game table"><span class="print-phone">↻</span><span class="print-marker marker-one">1</span><span class="print-marker marker-two">2</span><span class="print-marker marker-three">3</span><figcaption>Pass one shared phone around the table.</figcaption></figure>' : ''}
       </section>
 
       <section class="setup-sheet" aria-labelledby="setup-title">
@@ -87,7 +116,7 @@ function renderSetup(message = ''): void {
         <div class="rule"></div>
         <div class="section-heading"><div><p class="step-mark">02</p><h2>How should time work?</h2></div></div>
         <fieldset class="mode-grid"><legend class="sr-only">Clock mode</legend>
-          ${(['countup', 'bank', 'fischer', 'fixed'] as ClockMode[]).map((mode) => `<label class="mode-card"><input type="radio" name="mode" value="${mode}" ${setup.settings.mode === mode ? 'checked' : ''}><span><strong>${modeLabel(mode)}</strong><small>${({ countup: 'Track time used', bank: 'One budget each', fischer: 'Budget + time back', fixed: 'Fresh limit every turn' })[mode]}</small></span></label>`).join('')}
+          ${(['countup', 'bank', 'fischer', 'fixed'] as ClockMode[]).map((mode) => `<label class="mode-card"><input type="radio" name="mode" value="${mode}" ${setup.settings.mode === mode ? 'checked' : ''}><span><strong>${modeLabel(mode)}</strong><small>${({ countup: 'Track time used', bank: 'One budget each', fischer: 'Budget with time back', fixed: 'Fresh limit every turn' })[mode]}</small></span></label>`).join('')}
         </fieldset>
         <div class="time-fields">
           ${timed ? `<label><span>${setup.settings.mode === 'fixed' ? 'Per turn' : 'Starting bank'}</span><span class="field-unit"><input type="number" min="5" max="86400" step="5" value="${setup.settings.durationSec}" data-setting="durationSec" inputmode="numeric"><small>seconds</small></span></label>` : ''}
@@ -97,10 +126,11 @@ function renderSetup(message = ''): void {
         <p class="form-message" role="status">${escapeHtml(message)}</p>
         <div class="launch-row">
           <button class="primary-button" data-action="start">Start the clock <span aria-hidden="true">→</span></button>
-          <button class="text-button" data-action="share-preset">Share this setup</button>
+          <button class="text-button" data-action="share-preset">Create a setup link</button>
         </div>
       </section>
-      <aside class="offline-note"><span aria-hidden="true">✦</span><p><strong>Made to outlast app stores.</strong><br>Install it once and the clock keeps working without a connection. Cross-phone sync is not included in this release.</p></aside>
+      <section class="how-it-works" aria-labelledby="how-title"><p class="step-mark">03</p><h2 id="how-title">Keep turns moving in three steps</h2><ol><li><strong>Name the players.</strong> Put them in turn order.</li><li><strong>Choose a clock.</strong> Pick the timing rule your table uses.</li><li><strong>Tap the active field.</strong> The next player starts.</li></ol></section>
+      <aside class="offline-note"><span aria-hidden="true">✦</span><p><strong>Install it from this site.</strong><br>After the first visit, the demo keeps working without a connection.</p></aside>
       <div class="data-tools"><button class="text-button" data-action="import">Import a setup</button><input class="sr-only" type="file" accept="application/json" data-import-file aria-label="Choose a Tableclock setup file"></div>
     </main>
     ${footer()}
@@ -109,16 +139,16 @@ function renderSetup(message = ''): void {
 }
 
 function footer(): string {
-  return `<footer class="site-footer"><span>Free, private, and made for the table.</span><span><a href="/privacy" data-nav>Privacy</a> · <a href="/terms" data-nav>Terms</a> · <span>Original AI-assisted print</span></span></footer><div class="toast" role="status" aria-live="polite" data-toast hidden></div>`;
+  return `<footer class="site-footer"><span>One shared-device turn timer for board-game tables.</span><span><a href="/privacy" data-nav>Privacy</a><a href="/terms" data-nav>Terms</a><span>Built by Param Factory</span><span>build ${__BUILD_ID__}</span></span></footer><div class="route-announcer sr-only" role="status" aria-live="polite"></div><div class="toast" role="status" aria-live="polite" data-toast hidden></div>`;
 }
 
 function dialogs(): string {
-  return `<dialog id="share-dialog"><form method="dialog" class="dialog-sheet"><div class="dialog-head"><div><p class="eyebrow">Preset link</p><h2>Bring this setup back</h2></div><button class="close-button" value="cancel" aria-label="Close">×</button></div><p>Player names and clock rules are encoded in the link. No data is uploaded.</p><label>Share link<input id="share-url" readonly></label><div class="dialog-actions"><button class="primary-button" type="button" data-action="copy-preset">Copy link</button><button class="paper-button" value="cancel">Done</button></div></form></dialog>`;
+  return `<dialog id="share-dialog"><form method="dialog" class="dialog-sheet"><div class="dialog-head"><div><p class="eyebrow">Setup link</p><h2>Reuse this setup</h2></div><button class="close-button" value="cancel" aria-label="Close">×</button></div><p>The link includes player names and clock rules. It is not uploaded.</p><label>Share link<input id="share-url" readonly></label><div class="dialog-actions"><button class="primary-button" type="button" data-action="copy-preset">Copy link</button><button class="paper-button" value="cancel">Close</button></div></form></dialog>`;
 }
 
 function renderGame(): void {
   if (!game) return;
-  document.title = `${game.players[game.activeIndex]?.name ?? 'Clock'}’s turn — Tableclock`;
+  setMetadata(`${game.players[game.activeIndex]?.name ?? 'Clock'}’s turn — Tableclock`, 'A running Tableclock turn timer for one shared board-game table.');
   const active = game.players[game.activeIndex]!;
   const values = activeValues(game);
   const shown = game.settings.mode === 'countup' ? values.elapsedMs : values.remainingMs;
@@ -128,8 +158,9 @@ function renderGame(): void {
       <p class="turn-meta">Turn ${game.turnNumber} · ${modeLabel(game.settings.mode)}</p>
       <p class="sync-unavailable" aria-label="Cross-phone sync is not included in this release"><span aria-hidden="true">↔</span> Sync not included</p>
     </header>
+    ${demoBanner()}
     <main id="main" class="game-board" style="--active-color:${active.color};--running-strip:${RUNNING_STRIP_COLOR};--out-label:${OUT_LABEL_COLOR}">
-      <h1 class="sr-only">Game clock</h1>
+      <h1 class="sr-only" tabindex="-1">Game clock</h1>
       <button class="active-clock" data-action="end-turn" ${game.running ? '' : 'aria-disabled="true"'} aria-label="${game.running ? `End ${escapeHtml(active.name)}’s turn` : `Start ${escapeHtml(active.name)}’s turn`}">
         <span class="turn-label">${game.running ? 'Now playing' : 'Ready for'}</span>
         <strong class="active-name" aria-live="polite">${escapeHtml(active.name)}</strong>
@@ -149,6 +180,7 @@ function renderGame(): void {
       <button class="dock-button" data-action="game-menu"><span aria-hidden="true">•••</span><span>Options</span></button>
     </nav>
     <div class="toast" role="status" aria-live="polite" data-toast hidden></div>
+    <div class="route-announcer sr-only" role="status" aria-live="polite"></div>
     ${gameDialogs()}`;
   if (game.running) startTicker();
 }
@@ -278,6 +310,12 @@ function handleAction(action: string, button: HTMLElement, pointerActivated = fa
     setup.players.forEach((p, index) => { p.name = p.name.trim(); p.color = PLAYER_COLORS[index]!; });
     game = createGame(setup);
     persistSetup(); persistGame(); renderGame();
+  } else if (action === 'try-demo') {
+    location.assign('/demo');
+  } else if (action === 'reset-demo') {
+    void resetDemo();
+  } else if (action === 'start-real') {
+    location.assign('/');
   } else if (action === 'toggle-run') {
     if (!game) return;
     game = game.running ? pause(game) : startOrResume(game);
@@ -294,7 +332,7 @@ function handleAction(action: string, button: HTMLElement, pointerActivated = fa
     (document.querySelector('#game-menu') as HTMLDialogElement)?.showModal();
   } else if (action === 'share-preset') {
     const dialog = document.querySelector<HTMLDialogElement>('#share-dialog')!;
-    const url = new URL(location.href); url.pathname = '/'; url.search = ''; url.searchParams.set('preset', encodePreset(setup));
+    const url = new URL(location.href); url.pathname = isDemo ? '/demo' : '/'; url.search = ''; url.searchParams.set('preset', encodePreset(setup));
     document.querySelector<HTMLInputElement>('#share-url')!.value = url.toString(); dialog.showModal();
   } else if (action === 'copy-preset') {
     const input = document.querySelector<HTMLInputElement>('#share-url')!; input.select();
@@ -339,7 +377,12 @@ app.addEventListener('change', (event) => {
 app.addEventListener('click', (event) => {
   const target = event.target as HTMLElement;
   const nav = target.closest<HTMLAnchorElement>('[data-nav]');
-  if (nav) { event.preventDefault(); history.pushState({}, '', nav.href); route(); return; }
+  if (nav) {
+    event.preventDefault();
+    const targetPath = new URL(nav.href).pathname.replace(/\/$/, '') || '/';
+    if ((targetPath === '/demo') !== isDemo && (targetPath === '/' || targetPath === '/demo')) { location.assign(nav.href); return; }
+    history.replaceState({ scrollY: window.scrollY }, ''); history.pushState({ scrollY: 0 }, '', nav.href); route(true); return;
+  }
   const actionElement = target.closest<HTMLElement>('[data-action]');
   if (actionElement) { event.preventDefault(); handleAction(actionElement.dataset.action!, actionElement, event.detail > 0); return; }
   const remove = target.closest<HTMLElement>('[data-remove]');
@@ -372,7 +415,7 @@ document.addEventListener('keydown', (event) => {
   if (event.key.toLowerCase() === 'p') { event.preventDefault(); handleAction('toggle-run', document.body); }
 });
 
-window.addEventListener('popstate', route);
+window.addEventListener('popstate', () => route(true));
 window.addEventListener('online', () => updateNetwork(true));
 window.addEventListener('offline', () => updateNetwork(false));
 window.addEventListener('beforeinstallprompt', (event) => { event.preventDefault(); deferredInstall = event; updateInstallButton(); });
@@ -385,14 +428,45 @@ function updateNetwork(online: boolean): void {
 }
 function updateInstallButton(): void { const button = document.querySelector<HTMLButtonElement>('[data-action="install"]'); if (button) button.hidden = !deferredInstall; }
 
-function route(): void {
-  if (location.pathname === '/privacy') legalPage('privacy');
-  else if (location.pathname === '/terms') legalPage('terms');
-  else if (game) renderGame();
-  else renderSetup();
+function renderNotFound(): void {
+  setMetadata('Page not found — Tableclock', 'This Tableclock page does not exist. Return to the turn timer.');
+  app.innerHTML = `${siteHeader()}<main id="main" class="legal-page not-found"><p class="eyebrow">404</p><h1 tabindex="-1">This table has no page</h1><p>The link may be old or misspelled. Return to your turn timer.</p><p><a class="primary-link" href="/" data-nav>Return to Tableclock</a></p></main>${footer()}`;
+}
+
+function route(announce = false): void {
+  const path = location.pathname.replace(/\/$/, '') || '/';
+  if (path === '/privacy') legalPage('privacy');
+  else if (path === '/terms') legalPage('terms');
+  else if (path === '/' || path === '/demo') {
+    if (game) renderGame(); else renderSetup();
+  } else renderNotFound();
+  if (announce) {
+    window.scrollTo({ top: history.state?.scrollY ?? 0, behavior: 'auto' });
+    requestAnimationFrame(() => {
+      const heading = document.querySelector<HTMLElement>('main h1');
+      heading?.focus();
+      const announcer = document.querySelector<HTMLElement>('.route-announcer');
+      if (announcer && heading) announcer.textContent = heading.textContent ?? '';
+    });
+  }
+}
+
+function demoSetup(): SavedSetup {
+  const names = ['Maya', 'Lionel', 'Priya', 'Sora'];
+  return { version: 1, players: names.map((name, index) => makePlayer(name, index)), settings: { ...DEFAULT_SETTINGS, mode: 'fischer', durationSec: 900, incrementSec: 30, nudgeSec: 75 } };
+}
+
+async function resetDemo(): Promise<void> {
+  if (!isDemo) return;
+  await clearLocal();
+  setup = demoSetup();
+  game = startOrResume(createGame(setup));
+  persistSetup(); persistGame(); renderGame(); showToast('Fresh sample game loaded.');
 }
 
 async function boot(): Promise<void> {
+  isDemo = location.pathname.replace(/\/$/, '') === '/demo' || new URLSearchParams(location.search).get('demo') === '1';
+  setStorageNamespace(isDemo ? 'demo' : 'real');
   const savedSetup = await readLocal<SavedSetup>('setup');
   const savedGame = await readLocal<GameState>('game');
   const validSavedSetup = parseImportedSetup(savedSetup);
@@ -408,6 +482,11 @@ async function boot(): Promise<void> {
     await writeLocal('game', null);
     history.replaceState({}, '', '/');
   } else if (isValidGameState(savedGame)) game = savedGame;
+  if (isDemo && (!validSavedSetup || !isValidGameState(savedGame))) {
+    setup = demoSetup();
+    game = startOrResume(createGame(setup));
+    persistSetup(); persistGame();
+  }
   route();
   if ('serviceWorker' in navigator) {
     navigator.serviceWorker.register('/sw.js').then((registration) => {

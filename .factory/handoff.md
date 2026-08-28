@@ -1,61 +1,38 @@
-# Tableclock adversarial review handoff — FAIL
+# Tableclock polish handoff — round 1
 
-Date: 2026-08-28
+## Delivered
 
-Work order: `tableclock-review-1`
-
-Reviewed candidate: `f5d20393223bd4f9605ba6836962fa46be17f51c`
-
-Reviewed deployment: https://tableclock.sociobot.in
-
-## What was done
-
-- Reviewed the live site cold in fresh 390 × 844 and 1440 × 900 browser contexts.
-- Audited every landing copy unit and every README sentence with word counts and concrete rewrites.
-- Checked `/demo`, demo controls, sample state, and IndexedDB isolation.
-- Checked the required claims manifest and claim tags.
-- Exercised normal offline reload with request interception.
-- Checked titles, headings, metadata, unknown routes, deep links, Back/focus behavior, link health, touch targets, route shells, and visual identity.
-- Ran build, unit, browser, live smoke, and live Axe checks.
-- Wrote the full evidence and findings to `.factory/review-1.md`.
-
-No product code was changed.
-
-## Verdict and blockers
-
-**FAIL.** Five BLOCKING findings remain:
-
-1. No unambiguous first-screen primary action.
-2. No one-click sample demo; `/demo` reads and writes the normal IndexedDB namespace.
-3. Missing `.factory/claims.json` and all `@claim:*` tests.
-4. Unknown routes return the home page as HTTP 200; there is no designed 404.
-5. Five-phone art and “One phone or a whole table” imply multi-device use although cross-phone sync is absent.
-
-The review also records incomplete metadata, route focus/shell problems, missing landing sections, sub-44 px link targets, copy issues, and all unlisted claims.
+- Reworked the first screen around the plain job: **Time every player’s turn**, its audience, an above-fold sample action, the real setup step, and three scoped facts.
+- Added `/demo` and `?demo=1`: a running Maya/Lionel/Priya/Sora Bank-with-increment sample in the separate `tableclock-demo` IndexedDB database. The banner has working Reset demo and Start for real controls; real games stay in `tableclock-local`.
+- Added the claim contract, demo notes, copy audit, seven clean-context browser claim tests, corrected terminology, and a verb-first catalog line.
+- Replaced the multi-phone implication with a one-shared-phone CSS spot-print while retaining the warm-paper, offset-ink identity. Added an icon-derived 1200×630 social image.
+- Added consistent SPA legal shells, route titles/metadata/canonical/OG/Twitter/apple-touch metadata, focus and live announcements on navigation, an in-product Tableclock 404, sitemap entries, and static security headers.
+- Improved 390 px layout and 44 px header/footer link targets. Removed divergent standalone legal documents so direct legal paths use the same renderer.
 
 ## Verification
+
+Run from a clean checkout:
 
 ```sh
 npm ci
 npm test
 npm run build
-npm run test:e2e
-VERIFY_NODE_MODULES=/usr/lib/node_modules /opt/fleet/lib/verify-url.sh \
-  https://tableclock.sociobot.in /tmp/tableclock-review-evidence
+npm run test:e2e -- --workers=1
 ```
 
-Results:
+This repair's local evidence:
 
-- `npm test`: 28/28 passed.
-- `npm run build`: passed and produced `dist/`; initial JS is 9.68 kB gzip.
-- `npm run test:e2e`: 3/3 passed.
-- Live verifier: passed with no console errors.
-- Live Axe on `/`, `/privacy`, and `/terms`: zero violations.
-- Normal offline reload: passed; all observed runtime requests were same-origin.
-- Claim-test run: impossible because the claims manifest is absent.
-- Demo isolation: failed; a value written on `/demo` appeared on `/`.
-- Link/asset crawl: all enumerated shipped targets returned 200.
+- `npm test`: 28 tests passed.
+- `npm run build`: passed; `dist/index.html` exists; initial JS is 10.72 KB gzip and CSS is 4.97 KB gzip.
+- `npm run test:e2e -- --workers=1`: 8 passed, including Axe with no serious or critical violations, 390 px touch targets, route focus/404, privacy interception, and offline reload.
+- Every command in `.factory/claims.json` passed individually against `/demo`: `demo-sandbox`, `offline-reload`, `player-range`, `local-private`, `setup-link`, `one-shared-device`, and `turn-flow`.
+- `/opt/fleet/lib/verify-url.sh http://127.0.0.1:4173/demo ...`: HTTP 200; no console errors; `lang=en`; one h1; main landmark; no missing image alt or unlabeled buttons. Its JSON and screenshots are in `.factory/evidence/verify-demo/` in the worker.
+- Lighthouse mobile on `/demo`: Performance 100, Accessibility 100, LCP 1354 ms, CLS 0. The JSON is `.factory/evidence/lighthouse-demo.json` in the worker.
 
-## Next steps
+## Deployment
 
-Implement the isolated, seeded demo and claims contract first. Make the one-shared-phone limitation explicit above the fold unless real multi-device sync is added. Then add the 404, route metadata/focus behavior, consistent shells, and the copy fixes in the review before rerunning every tagged claim from a fresh demo context.
+Artifact remains a static Vite PWA. Deploy `dist/` using the static work-order target; `dist/staticwebapp.config.json` contains the SPA fallback, static 404 override, cache policy, CSP, and security headers. No repository work-order deployment credential or command was provided, so no external deployment was attempted.
+
+## Known gaps
+
+None for the review acceptance work. Cross-phone sync remains intentionally unavailable and is stated clearly above the fold.

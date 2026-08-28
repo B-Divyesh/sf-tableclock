@@ -1,0 +1,51 @@
+[
+  {
+    "id": "demo-sandbox",
+    "claim": "Try a running four-player sample without changing real games.",
+    "where": "landing action, demo banner, README",
+    "test": "npm run test:e2e -- --grep @claim:demo-sandbox",
+    "sandbox": "fresh browser context at /demo; assert the seeded running game and tableclock-demo database"
+  },
+  {
+    "id": "offline-reload",
+    "claim": "After the first visit, the demo works without a connection.",
+    "where": "landing limitations note, README",
+    "test": "npm run test:e2e -- --grep @claim:offline-reload",
+    "sandbox": "fresh context at /demo; obtain service-worker control, set offline, reload, and end a turn"
+  },
+  {
+    "id": "player-range",
+    "claim": "The timer supports two to eight players.",
+    "where": "landing lede, README",
+    "test": "npm run test:e2e -- --grep @claim:player-range",
+    "sandbox": "fresh setup; add through eight players and remove down to two, asserting the boundary controls"
+  },
+  {
+    "id": "local-private",
+    "claim": "Player names stay in this browser.",
+    "where": "landing facts, privacy page, README",
+    "test": "npm run test:e2e -- --grep @claim:local-private",
+    "sandbox": "fresh demo; assert the demo IndexedDB record exists and every observed request is same-origin"
+  },
+  {
+    "id": "setup-link",
+    "claim": "A setup link includes player names and clock rules without uploading them.",
+    "where": "setup-link dialog, README",
+    "test": "npm run test:e2e -- --grep @claim:setup-link",
+    "sandbox": "fresh demo; create a link, open it in another fresh page, and assert names/rules with same-origin requests only"
+  },
+  {
+    "id": "one-shared-device",
+    "claim": "Tableclock runs on one shared phone; cross-phone sync is not included.",
+    "where": "landing facts, running clock, privacy/terms, README",
+    "test": "npm run test:e2e -- --grep @claim:one-shared-device",
+    "sandbox": "fresh landing page; assert the visible scope facts and absence of a sync action"
+  },
+  {
+    "id": "turn-flow",
+    "claim": "Tapping the active field starts the next player’s turn.",
+    "where": "How it works section",
+    "test": "npm run test:e2e -- --grep @claim:turn-flow",
+    "sandbox": "fresh demo; tap the running active field and assert the next named player is active"
+  }
+]
