@@ -16,6 +16,8 @@ describe('static host hardening', () => {
   it('rewrites only real application routes and serves unknown paths as HTTP 404', () => {
     const rewrites = Object.fromEntries(config.routes.filter((route) => route.rewrite).map((route) => [route.route, route.rewrite]));
     expect(rewrites).toMatchObject({ '/': '/index.html', '/demo': '/index.html', '/privacy': '/index.html', '/terms': '/index.html' });
+    const normalizedRoutes = config.routes.map((route) => route.route.replace(/\/$/, '') || '/');
+    expect(new Set(normalizedRoutes).size).toBe(normalizedRoutes.length);
     expect(config.navigationFallback).toBeUndefined();
     expect(config.responseOverrides['404']).toEqual({ rewrite: '/404.html', statusCode: 404 });
   });

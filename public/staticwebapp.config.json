@@ -17,23 +17,11 @@
       "rewrite": "/index.html"
     },
     {
-      "route": "/demo/",
-      "rewrite": "/index.html"
-    },
-    {
       "route": "/privacy",
       "rewrite": "/index.html"
     },
     {
-      "route": "/privacy/",
-      "rewrite": "/index.html"
-    },
-    {
       "route": "/terms",
-      "rewrite": "/index.html"
-    },
-    {
-      "route": "/terms/",
       "rewrite": "/index.html"
     },
     {
