@@ -150,6 +150,7 @@ test('@claim:same-origin sends no demo data or activity to another origin', asyn
   const requests: { url: string; method: string; type: string }[] = [];
   page.on('request', (request) => requests.push({ url: request.url(), method: request.method(), type: request.resourceType() }));
   await page.goto('/demo');
+  const expectedOrigin = new URL(page.url()).origin;
   await page.locator('.active-clock').click();
   await page.getByRole('button', { name: /tableclock menu/i }).click();
   await page.getByRole('button', { name: /close/i }).click();
@@ -159,7 +160,7 @@ test('@claim:same-origin sends no demo data or activity to another origin', asyn
   await page.getByRole('button', { name: 'Start', exact: true }).click();
   await page.locator('.active-clock').click();
   expect(requests.length).toBeGreaterThan(0);
-  expect(requests.every((request) => new URL(request.url).origin === 'http://127.0.0.1:4173')).toBe(true);
+  expect(requests.every((request) => new URL(request.url).origin === expectedOrigin)).toBe(true);
   expect(requests.every((request) => request.method === 'GET')).toBe(true);
   expect(requests.filter((request) => ['fetch', 'xhr'].includes(request.type))).toEqual([]);
 });
@@ -204,6 +205,7 @@ test('@claim:setup-link-local creates and opens a setup link without sending its
   const requests: { url: string; method: string; body: string | null }[] = [];
   page.on('request', (request) => requests.push({ url: request.url(), method: request.method(), body: request.postData() }));
   await openDemoSetup(page);
+  const expectedOrigin = new URL(page.url()).origin;
   await page.getByRole('button', { name: /create a setup link/i }).click();
   const shareUrl = await page.locator('#share-url').inputValue();
   const setupUrl = new URL(shareUrl);
@@ -211,7 +213,7 @@ test('@claim:setup-link-local creates and opens a setup link without sending its
   expect(new URLSearchParams(setupUrl.hash.slice(1)).get('preset')).toBeTruthy();
   await page.goto(shareUrl);
   await expect(page.locator('[data-player-name]').first()).toHaveValue('Maya');
-  expect(requests.every((request) => new URL(request.url).origin === 'http://127.0.0.1:4173')).toBe(true);
+  expect(requests.every((request) => new URL(request.url).origin === expectedOrigin)).toBe(true);
   expect(requests.every((request) => request.body === null)).toBe(true);
   expect(requests.every((request) => !request.url.includes('Maya') && !request.url.includes('preset='))).toBe(true);
 });
@@ -402,8 +404,9 @@ test('route titles, metadata, focus, scroll restoration, legal links, and the st
   await expect.poll(() => page.evaluate(() => window.scrollY)).toBeGreaterThan(previousScroll - 5);
   await page.goto('/?demo=1');
   await expect(page).toHaveTitle('Demo — Tableclock');
-  await expect(page.locator('link[rel="canonical"]')).toHaveAttribute('href', 'http://127.0.0.1:4173/demo');
-  await expect(page.locator('meta[property="og:url"]')).toHaveAttribute('content', 'http://127.0.0.1:4173/demo');
+  const demoCanonical = `${new URL(page.url()).origin}/demo`;
+  await expect(page.locator('link[rel="canonical"]')).toHaveAttribute('href', demoCanonical);
+  await expect(page.locator('meta[property="og:url"]')).toHaveAttribute('content', demoCanonical);
   await page.goto('/terms');
   await expect(page).toHaveTitle('Terms — Tableclock');
   await expect(page.getByRole('link', { name: /back to the clock/i })).toHaveAttribute('href', '/');
