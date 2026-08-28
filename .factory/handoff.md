@@ -35,4 +35,4 @@ Artifact remains a static Vite PWA. Deploy `dist/` using the static work-order t
 
 ## Known gaps
 
-None for the review acceptance work. Cross-phone sync remains intentionally unavailable and is stated clearly above the fold.
+None for the review acceptance work. Cross-phone sync remains intentionally unavailable and is stated clearly above the fold. The public site still returned the prior shell immediately after the Git push; the repository contains no deploy workflow or credential, so the factory deployment runner must publish `dist/`.
